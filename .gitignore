@@ -1,0 +1,9 @@
+# Sabhi node_modules folders ko ignore karo
+**/node_modules
+
+# Backend .env file ko ignore karo
+backend/.env
+
+# Build folders ko ignore karo
+frontend/build
+dashboard/build
