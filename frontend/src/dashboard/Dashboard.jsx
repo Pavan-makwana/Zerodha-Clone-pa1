@@ -4,7 +4,7 @@ import axios from 'axios';
 const getApiClient = () => {
   const token = localStorage.getItem('token');
   return axios.create({
-    baseURL: 'http://localhost:3002', 
+    baseURL: 'https://zerodha-clone-pa1.onrender.com', 
     headers: {
       Authorization: `Bearer ${token}` 
     }

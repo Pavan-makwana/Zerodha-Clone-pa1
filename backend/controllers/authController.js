@@ -16,15 +16,13 @@ const loginUser = async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // --- YEH HAI CHANGE ---
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'strict',
-      maxAge: 3600000 // 1 ghanta
+      secure: true, 
+      sameSite: 'none',
+      maxAge: 3600000 
     });
     res.status(200).json({ message: "Login successful" });
-    // --- END CHANGE ---
 
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -23,7 +23,7 @@ const BuyActionWindow = ({ uid }) => {
 
     try {
       await axios.post(
-        "http://localhost:3002/newOrder",
+        "https://zerodha-clone-pa1.onrender.com/newOrder",
         {
           name: uid,
           qty: stockQuantity,
@@ -34,7 +34,6 @@ const BuyActionWindow = ({ uid }) => {
           withCredentials: true, 
         }
       );
-      // ---------------------------------
 
       alert("Order placed successfully!");
       setIsBuying(false);
@@ -105,7 +104,6 @@ const BuyActionWindow = ({ uid }) => {
           </Link>
         </div>
       </div>
-      {/* Error dikhane ke liye */}
       {error && <p style={{ color: "red", textAlign: "center", fontSize: "12px", marginTop: "5px" }}>{error}</p>}
     </div>
   );

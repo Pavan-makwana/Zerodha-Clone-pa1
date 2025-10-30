@@ -8,7 +8,7 @@ const Login = () => {
     email: "",
     password: "",
   });
-  const [error, setError] = useState(""); // Error state
+  const [error, setError] = useState(""); 
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -17,31 +17,26 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Har submit par error reset karein
+    setError(""); 
 
     try {
-      const response = await fetch("http://localhost:3002/api/auth/login", {
+      const response = await fetch("https://zerodha-clone-pa1.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
         
-        // --- YEH SABSE ZAROORI HAI ---
-        // Browser ko batata hai ki cookie receive karni hai
+        
         credentials: "include", 
       });
 
       if (response.ok) {
-        // Login successful, backend ne cookie set kar di hai
         alert("Login successful! Redirecting to dashboard...");
 
-        // localStorage.setItem("token", data.token); // <-- ISEY ISTEMAAL NAHI KARNA HAI
         
-        // Ab Dashboard app (Port 3001) par redirect karein
-        // "/" route par bhej rahe hain jahan aapka Summary component hai
-        window.location.href = "http://localhost:3001/";
+        window.location.href = "https://zerodha-clone-dashboard-pa1.vercel.app/";
 
       } else {
-        const data = await response.json(); // Error message ke liye
+        const data = await response.json(); 
         const errorMsg = data.message || "Login failed";
         setError(errorMsg);
         alert(errorMsg);
@@ -99,11 +94,9 @@ const Login = () => {
         >
           Login
         </button>
-        {/* Error message dikhane ke liye */}
         {error && <p style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>{error}</p>}
       </form>
 
-      {/* Yeh link 'navigate' use karega kyunki yeh same app (Port 3000) par hai */}
       <p style={{ textAlign: "center", marginTop: "15px" }}>
         Don’t have an account?{" "}
         <span

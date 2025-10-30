@@ -19,16 +19,18 @@ const PORT = process.env.PORT || 3002;
 const uri = process.env.MONGO_URL;
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'], // Dono frontend ko allow karein
+  origin: ['https://zerodha-clone-frontend-pa1.vercel.app/', 'https://zerodha-clone-dashboard-pa1.vercel.app/'], // Dono frontend ko allow karein
   credentials: true,
 }));
 
 app.use(bodyParser.json());
-app.use(cookieParser()); // <-- STEP 3: ISEY ADD KAREIN
+app.use(cookieParser()); 
 
 app.use('/api/auth', authRoutes);
+app.get('/', (req, res) => {
+  res.send('Zerodha Backend API is running... 🚀');
+});
 
-// Aapke baaki routes waise hi rahenge
 app.get('/allholdings', verifyToken, async (req, res) => {
   const allHoldings = await HoldingsModel.find({});
   res.json(allHoldings);

@@ -18,7 +18,7 @@ const Signup = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:3002/api/auth/register", {
+      const response = await fetch("https://zerodha-clone-pa1.onrender.com/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

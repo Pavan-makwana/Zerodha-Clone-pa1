@@ -10,7 +10,7 @@ const Orders = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:3002/allorders", {
+    axios.get("https://zerodha-clone-pa1.onrender.com/allorders", {
       withCredentials: true
     })
       .then((res) => {
@@ -22,7 +22,7 @@ const Orders = () => {
         if (err.response && (err.response.status === 401 || err.response.status === 400)) {
           setError("Authentication failed. Redirecting to login...");
           setTimeout(() => {
-            window.location.href = 'http://localhost:3000/login';
+            window.location.href = 'https://zerodha-clone-frontend-pa1.vercel.app//login';
           }, 2000);
         } else {
           setError("Failed to fetch orders data.");
