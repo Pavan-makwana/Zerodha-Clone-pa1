@@ -19,10 +19,12 @@ const PORT = process.env.PORT || 3002;
 const uri = process.env.MONGO_URL;
 
 app.use(cors({
-  origin: ['https://zerodha-clone-frontend-pa1.vercel.app/', 'https://zerodha-clone-dashboard-pa1.vercel.app/'], // Dono frontend ko allow karein
+  origin: [
+    'https://zerodha-clone-frontend-pa1.vercel.app', 
+    'https://zerodha-clone-dashboard-pa1.vercel.app' 
+  ],
   credentials: true,
 }));
-
 app.use(bodyParser.json());
 app.use(cookieParser()); 
 
