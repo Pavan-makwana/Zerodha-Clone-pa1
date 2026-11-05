@@ -195,4 +195,13 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Automated Integration Test Suite in backend/test/
    ├── [x] Clean zero-warning Production Builds for Dashboard and Frontend
    └── [x] Root monorepo scripts for install, start, build, and test
+
+[Phase 5: Cloud Deployment & Resilience Architecture] - COMPLETED ✅
+   ├── [x] Resilient in-memory fallback store (backend/utils/memoryStore.js) for zero-downtime availability
+   ├── [x] Instant port binding on Render (uncoupled app.listen from database connection status)
+   ├── [x] Express /health and / status endpoints returning uptime and database mode
+   ├── [x] Render blueprint specification (render.yaml) for automated container builds
+   ├── [x] Root package.json scripts for automatic backend installation on Render
+   ├── [x] Vercel SPA client-side route rewrites (vercel.json) verified for both Frontend and Dashboard
+   └── [x] Pre-seeded demo trader credentials (pa10506@zerodha.com / Makwanap@1)
 ```
