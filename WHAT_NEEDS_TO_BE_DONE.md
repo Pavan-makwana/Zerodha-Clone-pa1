@@ -204,4 +204,16 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Root package.json scripts for automatic backend installation on Render
    ├── [x] Vercel SPA client-side route rewrites (vercel.json) verified for both Frontend and Dashboard
    └── [x] Pre-seeded demo trader credentials (pa10506@zerodha.com / Makwanap@1)
+
+[Phase 6: Modern UI Overhaul, 10s Notification Cards & Portfolio Charts] - COMPLETED ✅
+   ├── [x] Built modern floating 10-second notification cards (Toast.js & Toast.css) with animated progress bar
+   ├── [x] Replaced all browser window.alert() and window.confirm() popups with non-blocking toasts
+   ├── [x] Redesigned Buy/Sell window with authentic Zerodha Kite colors: Vibrant Blue (#387ed1) & Coral Red (#df514c)
+   ├── [x] Added +/- stepper quantity controls, CNC/MIS product pills, and Market/Limit order type pills
+   ├── [x] Live dynamic margin required vs available margin status bar with insufficient funds warnings
+   ├── [x] Added interactive Portfolio Allocation Doughnut Chart to Summary.js with percentage tooltips
+   ├── [x] Added stock-by-stock Profit & Loss Bar Chart to Summary.js (emerald green for profit, coral red for loss)
+   ├── [x] Replaced generic "Hi, User!" with dynamic user profile greeting and account ID badge
+   ├── [x] Replaced squeezed sidebar chart with authentic Zerodha Kite watchlist pagination footer (1-7)
+   └── [x] Replaced browser alert() in Frontend Login and Signup with sleek inline feedback banners
 ```
