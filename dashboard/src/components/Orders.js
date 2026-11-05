@@ -4,15 +4,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
+const FRONTEND_URL = process.env.REACT_APP_FRONTEND_URL || "https://zerodha-clone-frontend-pa1.vercel.app";
+
 const Orders = () => {
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    axios.get("https://zerodha-clone-pa1.onrender.com/allorders", {
-      withCredentials: true
-    })
+    axios
+      .get(`${API_BASE_URL}/allorders`, {
+        withCredentials: true,
+      })
       .then((res) => {
         setAllOrders(res.data);
         setLoading(false);
@@ -22,7 +26,7 @@ const Orders = () => {
         if (err.response && (err.response.status === 401 || err.response.status === 400)) {
           setError("Authentication failed. Redirecting to login...");
           setTimeout(() => {
-            window.location.href = 'https://zerodha-clone-frontend-pa1.vercel.app//login';
+            window.location.href = `${FRONTEND_URL}/login`;
           }, 2000);
         } else {
           setError("Failed to fetch orders data.");
@@ -36,7 +40,7 @@ const Orders = () => {
   }
 
   if (error) {
-    return <h3 style={{ color: "red", padding: "20px" }}>{error}</h3>;
+    return <h4 style={{ color: "red", padding: "20px" }}>{error}</h4>;
   }
 
   return (
@@ -44,7 +48,7 @@ const Orders = () => {
       {allOrders.length === 0 ? (
         <div className="no-orders">
           <p>You haven't placed any orders today</p>
-          <Link to={"/"} className="btn">
+          <Link to={"/"} className="btn btn-blue" style={{ marginTop: "10px", display: "inline-block" }}>
             Get started
           </Link>
         </div>
@@ -59,6 +63,7 @@ const Orders = () => {
                   <th>Mode</th>
                   <th>Qty.</th>
                   <th>Price</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -67,9 +72,10 @@ const Orders = () => {
                   return (
                     <tr key={index}>
                       <td>{order.name}</td>
-                      <td className={modeClass}>{order.mode}</td>
+                      <td className={modeClass}><strong>{order.mode}</strong></td>
                       <td>{order.qty}</td>
-                      <td>{order.price.toFixed(2)}</td>
+                      <td>₹{(order.price || 0).toFixed(2)}</td>
+                      <td><span className="profit">COMPLETE</span></td>
                     </tr>
                   );
                 })}

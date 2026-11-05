@@ -3,7 +3,7 @@ import React from "react";
 function Team() {
   return (
     <div className="container">
-      <div className="row p-5 ">
+      <div className="row p-5">
         <h1 className="fs-3 text-center">People</h1>
       </div>
 
@@ -33,13 +33,15 @@ function Team() {
           <p>Playing basketball is his zen.</p>
           <p>
             Connect on &nbsp;
-            <a href="*" style={{ textDecoration: "none" }}>
-              Homepage/
+            <a href="https://nithinkamath.me" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              Homepage
             </a>
-            <a href="*" style={{ textDecoration: "none" }}>
-              TradingQnA/
+            &nbsp;/&nbsp;
+            <a href="https://tradingqna.com" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+              TradingQnA
             </a>
-            <a href="*" style={{ textDecoration: "none" }}>
+            &nbsp;/&nbsp;
+            <a href="https://twitter.com/Nithin0dha" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
               Twitter
             </a>
           </p>

@@ -15,6 +15,14 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  funds: {
+    type: Number,
+    default: 100000.00, // ₹1,00,000 initial paper trading cash
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
 module.exports = UserSchema;

@@ -211,5 +211,3 @@ export const positions = [
     "isLoss": false
   },
 ];
-
-// user : pa10506 pass : Makwanap@1

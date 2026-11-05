@@ -3,12 +3,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
+const DASHBOARD_URL = process.env.REACT_APP_DASHBOARD_URL || "https://zerodha-clone-dashboard-pa1.vercel.app/";
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
-  const [error, setError] = useState(""); 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -17,35 +21,40 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); 
+    setError("");
+    setLoading(true);
 
     try {
-      const response = await fetch("https://zerodha-clone-pa1.onrender.com/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
-        
-        
-        credentials: "include", 
+        credentials: "include",
       });
 
+      const data = await response.json();
+
       if (response.ok) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+        if (data.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
         alert("Login successful! Redirecting to dashboard...");
-
-        
-        window.location.href = "https://zerodha-clone-dashboard-pa1.vercel.app/";
-
+        window.location.href = DASHBOARD_URL;
       } else {
-        const data = await response.json(); 
         const errorMsg = data.message || "Login failed";
         setError(errorMsg);
         alert(errorMsg);
       }
     } catch (error) {
-      console.error("Error:", error);
-      const errorMsg = "Something went wrong! Check console or backend.";
+      console.error("Error during login:", error);
+      const errorMsg = "Something went wrong! Please check backend or network connection.";
       setError(errorMsg);
       alert(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -57,9 +66,10 @@ const Login = () => {
         padding: "30px",
         borderRadius: "10px",
         boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+        backgroundColor: "#fff",
       }}
     >
-      <h2 style={{ textAlign: "center" }}>Login</h2>
+      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Login</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -68,7 +78,7 @@ const Login = () => {
           value={formData.email}
           onChange={handleChange}
           required
-          style={{ width: "100%", margin: "10px 0", padding: "10px" }}
+          style={{ width: "100%", margin: "10px 0", padding: "10px", boxSizing: "border-box" }}
         />
         <input
           type="password"
@@ -77,28 +87,30 @@ const Login = () => {
           value={formData.password}
           onChange={handleChange}
           required
-          style={{ width: "100%", margin: "10px 0", padding: "10px" }}
+          style={{ width: "100%", margin: "10px 0", padding: "10px", boxSizing: "border-box" }}
         />
         <button
           type="submit"
+          disabled={loading}
           style={{
             width: "100%",
             padding: "10px",
-            backgroundColor: "#007bff",
+            backgroundColor: loading ? "#6c757d" : "#007bff",
             color: "#fff",
             border: "none",
             borderRadius: "5px",
-            cursor: "pointer",
+            cursor: loading ? "not-allowed" : "pointer",
             fontWeight: "bold",
+            marginTop: "10px",
           }}
         >
-          Login
+          {loading ? "Logging in..." : "Login"}
         </button>
         {error && <p style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>{error}</p>}
       </form>
 
       <p style={{ textAlign: "center", marginTop: "15px" }}>
-        Don’t have an account?{" "}
+        Don't have an account?{" "}
         <span
           onClick={() => navigate("/signup")}
           style={{ color: "#007bff", cursor: "pointer", fontWeight: "bold" }}
