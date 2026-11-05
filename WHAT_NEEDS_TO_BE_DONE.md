@@ -216,4 +216,16 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Replaced generic "Hi, User!" with dynamic user profile greeting and account ID badge
    ├── [x] Replaced squeezed sidebar chart with authentic Zerodha Kite watchlist pagination footer (1-7)
    └── [x] Replaced browser alert() in Frontend Login and Signup with sleek inline feedback banners
+
+[Phase 7: Account Profile & Funds High-Contrast Overhaul] - COMPLETED ✅
+   ├── [x] Overhauled Account Menu (Menu.js) with dynamic initials (PM), Client ID (PA10506), and cash margin pill
+   ├── [x] Built rich Kite Profile Dropdown with user avatar, email, profile navigation, and logout
+   ├── [x] Completely redesigned Funds page (Funds.js) eliminating all washed-out/faded low-contrast text
+   ├── [x] High-contrast Equity card with 2rem available margin callout, NSE/BSE active badge, and breakdown grid
+   ├── [x] Commodity Segment card with MCX trading status and segment manager
+   ├── [x] Interactive UPI Deposit Modal with quick amount chips (+₹1k, +₹5k, +₹10k, +₹25k) and 10s toast notification
+   ├── [x] Interactive Withdrawal Modal replacing browser prompt() with bank destination (HDFC Bank ****1981)
+   ├── [x] Fixed search input color bug in index.css (was white-on-white text) to crisp dark slate (#0f172a)
+   ├── [x] Harmonized TopBar NIFTY 50 and SENSEX green indices and percentage levels
+   └── [x] Rebuilt production bundles with zero ESLint warnings and zero errors
 ```
