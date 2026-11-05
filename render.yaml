@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: zerodha-clone-backend
+    env: node
+    plan: free
+    buildCommand: npm install --prefix backend
+    startCommand: node backend/index.js
+    envVars:
+      - key: PORT
+        value: 3002
+      - key: NODE_ENV
+        value: production

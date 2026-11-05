@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Full-stack Zerodha Kite Clone monorepo containing backend, dashboard, and frontend.",
   "scripts": {
+    "start": "node backend/index.js",
+    "postinstall": "npm install --prefix backend",
     "start:backend": "npm start --prefix backend",
     "start:dashboard": "npm start --prefix dashboard",
     "start:frontend": "npm start --prefix frontend",

@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const jwt = require('jsonwebtoken');
+const { memoryStore } = require('../utils/memoryStore');
 
 test('JWT Token Generation and Verification', () => {
   const secret = 'test-secret-key-12345';
@@ -90,4 +91,40 @@ test('Weighted Average Cost Calculation on BUY', () => {
 
   assert.strictEqual(newTotalQty, 3);
   assert.strictEqual(newAvg, 2100.0);
+});
+
+test('MemoryStore User, Orders, and Portfolio Execution', () => {
+  const testUserId = 'test_user_unit_test';
+  const holdingsBefore = memoryStore.getHoldings(testUserId);
+  assert.ok(holdingsBefore.length > 0, 'User should have initial holdings');
+
+  // Place BUY order
+  const buyResult = memoryStore.executeOrder({
+    userId: testUserId,
+    name: 'INFY',
+    qty: 2,
+    price: 1500.0,
+    mode: 'BUY',
+  });
+  assert.strictEqual(buyResult.order.mode, 'BUY');
+  assert.strictEqual(buyResult.order.name, 'INFY');
+
+  // Place SELL order
+  const sellResult = memoryStore.executeOrder({
+    userId: testUserId,
+    name: 'INFY',
+    qty: 1,
+    price: 1600.0,
+    mode: 'SELL',
+  });
+  assert.strictEqual(sellResult.order.mode, 'SELL');
+
+  // Watchlist operations
+  const item = memoryStore.addWatchlistItem(testUserId, { name: 'ZOMATO', price: 250 });
+  assert.strictEqual(item.name, 'ZOMATO');
+  const list = memoryStore.getWatchlist(testUserId);
+  assert.ok(list.some(s => s.name === 'ZOMATO'), 'Watchlist should contain newly added stock');
+
+  const removed = memoryStore.removeWatchlistItem(testUserId, 'ZOMATO');
+  assert.strictEqual(removed, true, 'Watchlist item should be removed');
 });

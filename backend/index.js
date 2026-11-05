@@ -12,9 +12,12 @@ const { PositionsModel } = require('./model/PositionsModel');
 const { OrdersModel } = require('./model/OrdersModel');
 const { WatchlistModel } = require('./model/WatchlistModel');
 const { UserModel } = require('./model/UserModel');
+const { memoryStore } = require('./utils/memoryStore');
 
 const authRoutes = require('./routes/authRoutes');
 const { verifyToken } = require('./middleware/authMiddleware');
+
+const isDbConnected = () => mongoose.connection.readyState === 1;
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -95,81 +98,111 @@ const defaultPositions = [
 app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
-  res.send('Zerodha Backend API is running successfully.');
+  res.status(200).json({
+    status: "online",
+    message: "Zerodha Backend API is running successfully.",
+    database: isDbConnected() ? "connected" : "fallback_mode",
+    version: "1.0.0",
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    dbReadyState: mongoose.connection.readyState,
+    database: isDbConnected() ? "connected" : "fallback_mode",
+  });
 });
 
 // User Isolated Holdings
 app.get('/allholdings', verifyToken, async (req, res) => {
   try {
-    let userHoldings = await HoldingsModel.find({ userId: req.user });
-    if (userHoldings.length === 0) {
-      // Check if global seed holdings exist without userId
-      const seedHoldings = await HoldingsModel.find({ userId: { $exists: false } });
-      const source = seedHoldings.length > 0 ? seedHoldings : defaultHoldings;
-      const initial = source.map((h) => ({
-        userId: req.user,
-        name: h.name,
-        qty: h.qty,
-        avg: h.avg,
-        price: h.price,
-        net: h.net,
-        day: h.day,
-      }));
-      userHoldings = await HoldingsModel.insertMany(initial);
+    if (isDbConnected()) {
+      let userHoldings = await HoldingsModel.find({ userId: req.user });
+      if (userHoldings.length === 0) {
+        const seedHoldings = await HoldingsModel.find({ userId: { $exists: false } });
+        const source = seedHoldings.length > 0 ? seedHoldings : defaultHoldings;
+        const initial = source.map((h) => ({
+          userId: req.user,
+          name: h.name,
+          qty: h.qty,
+          avg: h.avg,
+          price: h.price,
+          net: h.net,
+          day: h.day,
+        }));
+        userHoldings = await HoldingsModel.insertMany(initial);
+      }
+      return res.status(200).json(userHoldings);
+    } else {
+      return res.status(200).json(memoryStore.getHoldings(req.user));
     }
-    res.status(200).json(userHoldings);
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to fetch holdings" });
+    return res.status(500).json({ message: err.message || "Failed to fetch holdings" });
   }
 });
 
 // User Isolated Positions
 app.get('/allpositions', verifyToken, async (req, res) => {
   try {
-    let userPositions = await PositionsModel.find({ userId: req.user });
-    if (userPositions.length === 0) {
-      const seedPositions = await PositionsModel.find({ userId: { $exists: false } });
-      const source = seedPositions.length > 0 ? seedPositions : defaultPositions;
-      const initial = source.map((p) => ({
-        userId: req.user,
-        product: p.product,
-        name: p.name,
-        qty: p.qty,
-        avg: p.avg,
-        price: p.price,
-        net: p.net,
-        day: p.day,
-        isLoss: p.isLoss,
-      }));
-      userPositions = await PositionsModel.insertMany(initial);
+    if (isDbConnected()) {
+      let userPositions = await PositionsModel.find({ userId: req.user });
+      if (userPositions.length === 0) {
+        const seedPositions = await PositionsModel.find({ userId: { $exists: false } });
+        const source = seedPositions.length > 0 ? seedPositions : defaultPositions;
+        const initial = source.map((p) => ({
+          userId: req.user,
+          product: p.product,
+          name: p.name,
+          qty: p.qty,
+          avg: p.avg,
+          price: p.price,
+          net: p.net,
+          day: p.day,
+          isLoss: p.isLoss,
+        }));
+        userPositions = await PositionsModel.insertMany(initial);
+      }
+      return res.status(200).json(userPositions);
+    } else {
+      return res.status(200).json(memoryStore.getPositions(req.user));
     }
-    res.status(200).json(userPositions);
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to fetch positions" });
+    return res.status(500).json({ message: err.message || "Failed to fetch positions" });
   }
 });
 
 // User Isolated Orders
 app.get('/allorders', verifyToken, async (req, res) => {
   try {
-    const allOrders = await OrdersModel.find({ userId: req.user }).sort({ _id: -1 });
-    res.status(200).json(allOrders);
+    if (isDbConnected()) {
+      const allOrders = await OrdersModel.find({ userId: req.user }).sort({ _id: -1 });
+      return res.status(200).json(allOrders);
+    } else {
+      return res.status(200).json(memoryStore.getOrders(req.user));
+    }
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to fetch orders" });
+    return res.status(500).json({ message: err.message || "Failed to fetch orders" });
   }
 });
 
 // User Watchlist Endpoints
 app.get('/watchlist', verifyToken, async (req, res) => {
   try {
-    let userWatchlist = await WatchlistModel.find({ userId: req.user });
-    if (userWatchlist.length === 0) {
-      const initial = defaultWatchlist.map((s) => ({ ...s, userId: req.user }));
-      userWatchlist = await WatchlistModel.insertMany(initial);
+    if (isDbConnected()) {
+      let userWatchlist = await WatchlistModel.find({ userId: req.user });
+      if (userWatchlist.length === 0) {
+        const initial = defaultWatchlist.map((s) => ({ ...s, userId: req.user }));
+        userWatchlist = await WatchlistModel.insertMany(initial);
+      }
+      return res.status(200).json(userWatchlist);
+    } else {
+      return res.status(200).json(memoryStore.getWatchlist(req.user));
     }
-    res.status(200).json(userWatchlist);
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to fetch watchlist" });
+    return res.status(500).json({ message: err.message || "Failed to fetch watchlist" });
   }
 });
 
@@ -178,43 +211,59 @@ app.post('/watchlist/add', verifyToken, async (req, res) => {
     const { name, price } = req.body;
     if (!name) return res.status(400).json({ message: "Stock symbol is required" });
     const stockName = name.toUpperCase().trim();
-    const existing = await WatchlistModel.findOne({ userId: req.user, name: stockName });
-    if (existing) {
-      return res.status(400).json({ message: "Stock is already in your watchlist" });
+
+    if (isDbConnected()) {
+      const existing = await WatchlistModel.findOne({ userId: req.user, name: stockName });
+      if (existing) {
+        return res.status(400).json({ message: "Stock is already in your watchlist" });
+      }
+      const item = new WatchlistModel({
+        userId: req.user,
+        name: stockName,
+        price: Number(price) || 500.0,
+        percent: "+0.00%",
+        isDown: false,
+      });
+      await item.save();
+      return res.status(201).json(item);
+    } else {
+      const item = memoryStore.addWatchlistItem(req.user, { name: stockName, price });
+      return res.status(201).json(item);
     }
-    const item = new WatchlistModel({
-      userId: req.user,
-      name: stockName,
-      price: Number(price) || 500.0,
-      percent: "+0.00%",
-      isDown: false,
-    });
-    await item.save();
-    res.status(201).json(item);
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to add to watchlist" });
+    return res.status(500).json({ message: err.message || "Failed to add to watchlist" });
   }
 });
 
 app.delete('/watchlist/:name', verifyToken, async (req, res) => {
   try {
     const stockName = req.params.name.toUpperCase().trim();
-    await WatchlistModel.deleteOne({ userId: req.user, name: stockName });
-    res.status(200).json({ message: `Removed ${stockName} from watchlist` });
+    if (isDbConnected()) {
+      await WatchlistModel.deleteOne({ userId: req.user, name: stockName });
+    } else {
+      memoryStore.removeWatchlistItem(req.user, stockName);
+    }
+    return res.status(200).json({ message: `Removed ${stockName} from watchlist` });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to remove from watchlist" });
+    return res.status(500).json({ message: err.message || "Failed to remove from watchlist" });
   }
 });
 
 // User Margin & Funds Endpoints
 app.get('/funds', verifyToken, async (req, res) => {
   try {
-    const user = await UserModel.findById(req.user);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    const availableMargin = user.funds !== undefined ? user.funds : 100000.0;
-    res.status(200).json({ availableMargin, usedMargin: 0.0 });
+    if (isDbConnected()) {
+      const user = await UserModel.findById(req.user);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      const availableMargin = user.funds !== undefined ? user.funds : 100000.0;
+      return res.status(200).json({ availableMargin, usedMargin: 0.0 });
+    } else {
+      const user = memoryStore.findUserById(req.user);
+      const availableMargin = user && user.funds !== undefined ? user.funds : 100000.0;
+      return res.status(200).json({ availableMargin, usedMargin: 0.0 });
+    }
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to fetch funds" });
+    return res.status(500).json({ message: err.message || "Failed to fetch funds" });
   }
 });
 
@@ -224,13 +273,19 @@ app.post('/funds/add', verifyToken, async (req, res) => {
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: "Amount must be greater than 0" });
     }
-    const user = await UserModel.findById(req.user);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    user.funds = (user.funds || 0) + amount;
-    await user.save();
-    res.status(200).json({ message: "Funds added successfully", availableMargin: user.funds });
+
+    if (isDbConnected()) {
+      const user = await UserModel.findById(req.user);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      user.funds = (user.funds || 0) + amount;
+      await user.save();
+      return res.status(200).json({ message: "Funds added successfully", availableMargin: user.funds });
+    } else {
+      const newBalance = memoryStore.addFunds(req.user, amount);
+      return res.status(200).json({ message: "Funds added successfully", availableMargin: newBalance });
+    }
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to add funds" });
+    return res.status(500).json({ message: err.message || "Failed to add funds" });
   }
 });
 
@@ -240,16 +295,26 @@ app.post('/funds/withdraw', verifyToken, async (req, res) => {
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: "Amount must be greater than 0" });
     }
-    const user = await UserModel.findById(req.user);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    if ((user.funds || 0) < amount) {
-      return res.status(400).json({ message: "Insufficient available margin" });
+
+    if (isDbConnected()) {
+      const user = await UserModel.findById(req.user);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if ((user.funds || 0) < amount) {
+        return res.status(400).json({ message: "Insufficient available margin" });
+      }
+      user.funds = (user.funds || 0) - amount;
+      await user.save();
+      return res.status(200).json({ message: "Withdrawal completed", availableMargin: user.funds });
+    } else {
+      const user = memoryStore.findUserById(req.user);
+      if ((user.funds || 0) < amount) {
+        return res.status(400).json({ message: "Insufficient available margin" });
+      }
+      user.funds = (user.funds || 0) - amount;
+      return res.status(200).json({ message: "Withdrawal completed", availableMargin: user.funds });
     }
-    user.funds = (user.funds || 0) - amount;
-    await user.save();
-    res.status(200).json({ message: "Withdrawal completed", availableMargin: user.funds });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to withdraw funds" });
+    return res.status(500).json({ message: err.message || "Failed to withdraw funds" });
   }
 });
 
@@ -277,28 +342,41 @@ app.post('/newOrder', verifyToken, async (req, res) => {
       return res.status(400).json({ message: "Mode must be either BUY or SELL" });
     }
 
+    if (!isDbConnected()) {
+      const result = memoryStore.executeOrder({
+        userId: req.user,
+        name,
+        qty: orderQty,
+        price: orderPrice,
+        mode: normalizedMode,
+      });
+      return res.status(201).json({
+        message: `${normalizedMode} order placed successfully!`,
+        order: result.order,
+        availableMargin: result.availableMargin,
+      });
+    }
+
     const totalCost = orderPrice * orderQty;
     const user = await UserModel.findById(req.user);
 
-    // BUY Flow: Check available funds & deduct
     if (normalizedMode === "BUY") {
-      if (user && user.funds !== undefined && user.funds < totalCost) {
+      if (user && user.funds < totalCost) {
         return res.status(400).json({
-          message: `Insufficient margin! Required: ₹${totalCost.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`,
+          message: `Insufficient funds. Required: ₹${totalCost.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`
         });
       }
-      if (user && user.funds !== undefined) {
+
+      if (user) {
         user.funds -= totalCost;
         await user.save();
       }
 
-      // Update or create holding
       const existingHolding = await HoldingsModel.findOne({ userId: req.user, name });
       if (existingHolding) {
-        const totalInvestment = (existingHolding.avg * existingHolding.qty) + totalCost;
-        const newTotalQty = existingHolding.qty + orderQty;
-        existingHolding.qty = newTotalQty;
-        existingHolding.avg = Number((totalInvestment / newTotalQty).toFixed(2));
+        const totalPreviousCost = existingHolding.qty * existingHolding.avg;
+        existingHolding.qty += orderQty;
+        existingHolding.avg = (totalPreviousCost + totalCost) / existingHolding.qty;
         existingHolding.price = orderPrice;
         await existingHolding.save();
       } else {
@@ -314,29 +392,26 @@ app.post('/newOrder', verifyToken, async (req, res) => {
         await newHolding.save();
       }
     } else if (normalizedMode === "SELL") {
-      // SELL Flow: Check ownership & credit funds
       const existingHolding = await HoldingsModel.findOne({ userId: req.user, name });
       if (!existingHolding || existingHolding.qty < orderQty) {
         return res.status(400).json({
-          message: `Cannot sell ${orderQty} shares of ${name}. You currently own ${existingHolding ? existingHolding.qty : 0} shares.`,
+          message: `Insufficient stock holdings to sell. Requested: ${orderQty}, Available: ${existingHolding ? existingHolding.qty : 0}`
         });
       }
 
-      if (user && user.funds !== undefined) {
-        user.funds += totalCost;
-        await user.save();
-      }
-
-      if (existingHolding.qty <= orderQty) {
+      existingHolding.qty -= orderQty;
+      if (existingHolding.qty === 0) {
         await HoldingsModel.deleteOne({ _id: existingHolding._id });
       } else {
-        existingHolding.qty -= orderQty;
-        existingHolding.price = orderPrice;
         await existingHolding.save();
+      }
+
+      if (user) {
+        user.funds = (user.funds || 0) + totalCost;
+        await user.save();
       }
     }
 
-    // Record order
     const newOrder = new OrdersModel({
       userId: req.user,
       name,
@@ -363,18 +438,27 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: err.message || "Internal server error" });
 });
 
-// MongoDB connection
+// Server start & MongoDB connection
 if (require.main === module) {
-  mongoose.connect(uri)
-    .then(() => {
-      console.log("MongoDB connected successfully");
-      app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-      });
+  const server = app.listen(PORT, () => {
+    console.log(`Zerodha backend server running on port ${PORT}`);
+  });
+
+  if (uri) {
+    console.log("Connecting to MongoDB Atlas...");
+    mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
     })
-    .catch((err) => {
-      console.error("MongoDB connection error:", err.message);
-    });
+      .then(() => {
+        console.log("MongoDB connected successfully");
+      })
+      .catch((err) => {
+        console.warn(`[Notice] MongoDB Atlas connection failed: ${err.message}`);
+        console.warn("[Notice] Server operating seamlessly in resilient in-memory fallback mode.");
+      });
+  } else {
+    console.warn("MONGO_URL not defined. Operating in resilient in-memory mode.");
+  }
 }
 
 module.exports = app;

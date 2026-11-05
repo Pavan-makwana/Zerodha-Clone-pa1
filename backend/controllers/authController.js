@@ -1,7 +1,11 @@
 // backend/controllers/authController.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const { UserModel } = require('../model/UserModel');
+const { memoryStore } = require('../utils/memoryStore');
+
+const isDbConnected = () => mongoose.connection.readyState === 1;
 
 const registerUser = async (req, res) => {
   try {
@@ -11,30 +15,58 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "Please provide all required fields (name, email, password)" });
     }
 
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists" });
+    const cleanEmail = email.toLowerCase().trim();
+
+    if (isDbConnected()) {
+      const existingUser = await UserModel.findOne({ email: cleanEmail });
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const newUser = new UserModel({
+        name,
+        email: cleanEmail,
+        password: hashedPassword,
+      });
+
+      await newUser.save();
+
+      return res.status(201).json({
+        message: "User registered successfully",
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+        },
+      });
+    } else {
+      // Resilient fallback mode
+      const existingUser = memoryStore.findUserByEmail(cleanEmail);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      const newUser = memoryStore.createUser({
+        name,
+        email: cleanEmail,
+        passwordHash: hashedPassword,
+      });
+
+      return res.status(201).json({
+        message: "User registered successfully",
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+        },
+      });
     }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    const newUser = new UserModel({
-      name,
-      email,
-      password: hashedPassword,
-    });
-
-    await newUser.save();
-
-    return res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-      },
-    });
   } catch (err) {
     return res.status(500).json({ message: err.message || "Internal server error during registration" });
   }
@@ -48,13 +80,22 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Email and password are required" });
     }
 
-    const user = await UserModel.findOne({ email });
+    const cleanEmail = email.toLowerCase().trim();
+    let user = null;
+
+    if (isDbConnected()) {
+      user = await UserModel.findOne({ email: cleanEmail });
+    } else {
+      user = memoryStore.findUserByEmail(cleanEmail);
+    }
+
     if (!user) return res.status(400).json({ message: "Invalid email or password" });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid email or password" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const secret = process.env.JWT_SECRET || 'zerodha_jwt_secret_key_production_fallback';
+    const token = jwt.sign({ id: user._id || user.id }, secret, { expiresIn: '1h' });
 
     res.cookie('token', token, {
       httpOnly: true,
@@ -67,7 +108,7 @@ const loginUser = async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        id: user._id,
+        id: user._id || user.id,
         name: user.name,
         email: user.email,
       },
@@ -93,7 +134,23 @@ const logoutUser = (req, res) => {
 
 const getCurrentUser = async (req, res) => {
   try {
-    const user = await UserModel.findById(req.user).select('-password');
+    let user = null;
+    if (isDbConnected()) {
+      user = await UserModel.findById(req.user).select('-password');
+    } else {
+      const u = memoryStore.findUserById(req.user);
+      if (u) {
+        user = {
+          _id: u._id,
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          funds: u.funds,
+          createdAt: u.createdAt,
+        };
+      }
+    }
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -103,4 +160,9 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, logoutUser, getCurrentUser };
+module.exports = {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCurrentUser,
+};
