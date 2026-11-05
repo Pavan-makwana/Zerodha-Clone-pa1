@@ -13,15 +13,18 @@ const Signup = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMsg("");
     setLoading(true);
 
     try {
@@ -34,19 +37,18 @@ const Signup = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert("Signup successful! Please login.");
-        console.log("User registered:", data);
-        navigate("/login");
+        setSuccessMsg("Signup successful! Redirecting to login...");
+        setTimeout(() => {
+          navigate("/login");
+        }, 1200);
       } else {
         const errorMsg = data.message || "Signup failed";
         setError(errorMsg);
-        alert(errorMsg);
       }
     } catch (err) {
       console.error("Error during signup:", err);
       const errorMsg = "Something went wrong! Check backend or network connection.";
       setError(errorMsg);
-      alert(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -109,7 +111,8 @@ const Signup = () => {
         >
           {loading ? "Registering..." : "Sign Up"}
         </button>
-        {error && <p style={{ color: "red", textAlign: "center", marginTop: "10px" }}>{error}</p>}
+        {error && <p style={{ color: '#d9534f', textAlign: 'center', marginTop: '12px', background: '#fdeeee', padding: '8px', borderRadius: '4px', fontSize: '13px' }}>{error}</p>}
+        {successMsg && <p style={{ color: '#00a25b', textAlign: 'center', marginTop: '12px', background: '#e6f7ed', padding: '8px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold' }}>{successMsg}</p>}
       </form>
 
       <p style={{ textAlign: "center", marginTop: "15px" }}>

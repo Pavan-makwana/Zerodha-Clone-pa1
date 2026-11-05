@@ -12,16 +12,19 @@ const Login = () => {
     password: "",
   });
   const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMsg("");
     setLoading(true);
 
     try {
@@ -41,18 +44,18 @@ const Login = () => {
         if (data.user) {
           localStorage.setItem("user", JSON.stringify(data.user));
         }
-        alert("Login successful! Redirecting to dashboard...");
-        window.location.href = DASHBOARD_URL;
+        setSuccessMsg("Login successful! Redirecting to dashboard...");
+        setTimeout(() => {
+          window.location.href = DASHBOARD_URL;
+        }, 500);
       } else {
         const errorMsg = data.message || "Login failed";
         setError(errorMsg);
-        alert(errorMsg);
       }
     } catch (error) {
       console.error("Error during login:", error);
       const errorMsg = "Something went wrong! Please check backend or network connection.";
       setError(errorMsg);
-      alert(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -106,7 +109,8 @@ const Login = () => {
         >
           {loading ? "Logging in..." : "Login"}
         </button>
-        {error && <p style={{ color: 'red', textAlign: 'center', marginTop: '10px' }}>{error}</p>}
+        {error && <p style={{ color: '#d9534f', textAlign: 'center', marginTop: '12px', background: '#fdeeee', padding: '8px', borderRadius: '4px', fontSize: '13px' }}>{error}</p>}
+        {successMsg && <p style={{ color: '#00a25b', textAlign: 'center', marginTop: '12px', background: '#e6f7ed', padding: '8px', borderRadius: '4px', fontSize: '13px', fontWeight: 'bold' }}>{successMsg}</p>}
       </form>
 
       <p style={{ textAlign: "center", marginTop: "15px" }}>

@@ -11,7 +11,6 @@ import {
 } from "@mui/icons-material";
 
 import { watchlist as defaultLocalWatchlist } from "../data/data";
-import { DoughnutChart } from "./DoughnoutChart";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -21,6 +20,8 @@ const WatchList = () => {
   const [newStockSymbol, setNewStockSymbol] = useState("");
   const [newStockPrice, setNewStockPrice] = useState("");
   const [isAddingStock, setIsAddingStock] = useState(false);
+  const [activeTab, setActiveTab] = useState(1);
+  const { showToast } = useContext(GeneralContext);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -82,6 +83,7 @@ const WatchList = () => {
         { withCredentials: true, headers }
       );
       setWatchlistItems((prev) => [...prev, res.data]);
+      showToast({ title: "Watchlist Updated", message: `Added ${symbol} to watchlist.`, type: "success", duration: 5000 });
     } catch (err) {
       console.warn("Adding locally:", err);
       const newItem = {
@@ -91,6 +93,7 @@ const WatchList = () => {
         isDown: false,
       };
       setWatchlistItems((prev) => [...prev, newItem]);
+      showToast({ title: "Watchlist Updated", message: `Added ${symbol} to watchlist.`, type: "success", duration: 5000 });
     }
 
     setNewStockSymbol("");
@@ -99,8 +102,6 @@ const WatchList = () => {
   };
 
   const handleDeleteStock = async (stockName) => {
-    if (!window.confirm(`Remove ${stockName} from watchlist?`)) return;
-
     try {
       const token = localStorage.getItem("token");
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -114,46 +115,12 @@ const WatchList = () => {
     }
 
     setWatchlistItems((prev) => prev.filter((item) => item.name !== stockName));
+    showToast({ title: "Watchlist Updated", message: `Removed ${stockName} from watchlist.`, type: "info", duration: 5000 });
   };
 
   const filteredWatchlist = watchlistItems.filter((stock) =>
     stock.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const labels = filteredWatchlist.slice(0, 10).map((s) => s.name);
-
-  const data = {
-    labels,
-    datasets: [
-      {
-        label: "Price",
-        data: filteredWatchlist.slice(0, 10).map((stock) => stock.price),
-        backgroundColor: [
-          "rgba(255, 99, 132, 0.5)",
-          "rgba(54, 162, 235, 0.5)",
-          "rgba(255, 206, 86, 0.5)",
-          "rgba(75, 192, 192, 0.5)",
-          "rgba(153, 102, 255, 0.5)",
-          "rgba(255, 159, 64, 0.5)",
-          "rgba(199, 199, 199, 0.5)",
-          "rgba(83, 102, 255, 0.5)",
-          "rgba(40, 167, 69, 0.5)",
-        ],
-        borderColor: [
-          "rgba(255, 99, 132, 1)",
-          "rgba(54, 162, 235, 1)",
-          "rgba(255, 206, 86, 1)",
-          "rgba(75, 192, 192, 1)",
-          "rgba(153, 102, 255, 1)",
-          "rgba(255, 159, 64, 1)",
-          "rgba(199, 199, 199, 1)",
-          "rgba(83, 102, 255, 1)",
-          "rgba(40, 167, 69, 1)",
-        ],
-        borderWidth: 1,
-      },
-    ],
-  };
 
   return (
     <div className="watchlist-container">
@@ -247,7 +214,41 @@ const WatchList = () => {
         )}
       </ul>
 
-      {filteredWatchlist.length > 0 && <DoughnutChart data={data} />}
+      {/* Kite Watchlist Pagination Bar */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 16px",
+        borderTop: "1px solid #eee",
+        background: "#fafafa",
+        fontSize: "12px",
+        color: "#666"
+      }}>
+        <div style={{ display: "flex", gap: "6px" }}>
+          {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => setActiveTab(num)}
+              style={{
+                background: activeTab === num ? "#387ed1" : "transparent",
+                color: activeTab === num ? "#fff" : "#666",
+                border: "none",
+                borderRadius: "3px",
+                width: "24px",
+                height: "24px",
+                cursor: "pointer",
+                fontWeight: activeTab === num ? "bold" : "normal",
+                fontSize: "11px",
+              }}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
+        <span style={{ fontSize: "11px", color: "#999" }}>Kite 3.0</span>
+      </div>
     </div>
   );
 };

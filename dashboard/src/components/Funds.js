@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import GeneralContext from "./GeneralContext";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -10,6 +11,7 @@ const Funds = () => {
   const [fundAmount, setFundAmount] = useState(5000);
   const [upiId, setUpiId] = useState("");
   const [loading, setLoading] = useState(false);
+  const { showToast } = useContext(GeneralContext);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -31,7 +33,7 @@ const Funds = () => {
     e.preventDefault();
     const amount = Number(fundAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid amount greater than 0");
+      showToast({ title: "Invalid Amount", message: "Please enter a valid amount greater than 0", type: "error" });
       return;
     }
 
@@ -50,13 +52,13 @@ const Funds = () => {
       } else {
         setAvailableCash((prev) => prev + amount);
       }
-      alert(`₹${amount.toLocaleString()} added to margin successfully!`);
+      showToast({ title: "Funds Added", message: `₹${amount.toLocaleString()} added to margin successfully via UPI!`, type: "success" });
       setIsModalOpen(false);
       setFundAmount(5000);
     } catch (err) {
       console.error("Failed to add funds:", err);
       setAvailableCash((prev) => prev + amount);
-      alert(`₹${amount.toLocaleString()} added (local simulation).`);
+      showToast({ title: "Funds Added", message: `₹${amount.toLocaleString()} added (demo simulation mode).`, type: "success" });
       setIsModalOpen(false);
     } finally {
       setLoading(false);
@@ -68,11 +70,11 @@ const Funds = () => {
     if (!withdrawAmount) return;
     const amount = Number(withdrawAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Please enter a valid amount");
+      showToast({ title: "Invalid Amount", message: "Please enter a valid amount greater than 0", type: "error" });
       return;
     }
     if (amount > availableCash) {
-      alert("Insufficient available cash margin for withdrawal!");
+      showToast({ title: "Withdrawal Failed", message: "Insufficient available cash margin for withdrawal!", type: "error" });
       return;
     }
 
@@ -90,11 +92,11 @@ const Funds = () => {
       } else {
         setAvailableCash((prev) => prev - amount);
       }
-      alert(`Withdrawal request of ₹${amount.toLocaleString()} completed successfully.`);
+      showToast({ title: "Withdrawal Processed", message: `Withdrawal request of ₹${amount.toLocaleString()} completed successfully.`, type: "info" });
     } catch (err) {
       console.error("Failed to withdraw funds:", err);
       setAvailableCash((prev) => prev - amount);
-      alert(`Withdrawal of ₹${amount.toLocaleString()} processed.`);
+      showToast({ title: "Withdrawal Processed", message: `Withdrawal of ₹${amount.toLocaleString()} processed (demo mode).`, type: "info" });
     }
   };
 
