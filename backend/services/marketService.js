@@ -6,6 +6,8 @@
  * with in-memory caching and resilient fallback defaults.
  */
 
+const { INDIAN_STOCKS_DIRECTORY } = require('../data/indianStocks');
+
 const CACHE_TTL_MS = 20 * 1000; // 20 seconds cache
 const quoteCache = new Map();
 
@@ -13,25 +15,37 @@ const quoteCache = new Map();
 const fallbackBaselines = {
   "^NSEI": { name: "NIFTY 50", price: 24881.05, change: 345.50, changePercent: 1.40 },
   "^BSESN": { name: "SENSEX", price: 80582.34, change: 1266.02, changePercent: 1.60 },
-  "INFY": { name: "INFY", price: 1172.70, change: 5.30, changePercent: 0.45 },
-  "ONGC": { name: "ONGC", price: 116.80, change: -0.10, changePercent: -0.09 },
-  "TCS": { name: "TCS", price: 2500.50, change: 4.80, changePercent: 0.19 },
-  "KPITTECH": { name: "KPITTECH", price: 266.45, change: 9.10, changePercent: 3.54 },
-  "QUICKHEAL": { name: "QUICKHEAL", price: 308.55, change: -0.45, changePercent: -0.15 },
-  "WIPRO": { name: "WIPRO", price: 577.75, change: 1.85, changePercent: 0.32 },
-  "M&M": { name: "M&M", price: 779.80, change: -0.10, changePercent: -0.01 },
-  "RELIANCE": { name: "RELIANCE", price: 1315.90, change: 2.50, changePercent: 0.19 },
-  "HUL": { name: "HUL", price: 2417.40, change: 5.05, changePercent: 0.21 },
-  "HINDUNILVR": { name: "HINDUNILVR", price: 2417.40, change: 5.05, changePercent: 0.21 },
-  "BHARTIARTL": { name: "BHARTIARTL", price: 541.15, change: 15.70, changePercent: 2.99 },
-  "HDFCBANK": { name: "HDFCBANK", price: 1522.35, change: 1.65, changePercent: 0.11 },
-  "ITC": { name: "ITC", price: 207.90, change: 1.65, changePercent: 0.80 },
-  "SBIN": { name: "SBIN", price: 430.20, change: -1.45, changePercent: -0.34 },
-  "TATAPOWER": { name: "TATAPOWER", price: 124.15, change: -0.30, changePercent: -0.24 },
-  "TATAMOTORS": { name: "TATAMOTORS", price: 715.30, change: 8.20, changePercent: 1.16 },
-  "ZOMATO": { name: "ZOMATO", price: 245.60, change: 4.10, changePercent: 1.70 },
-  "PAYTM": { name: "PAYTM", price: 780.20, change: -6.50, changePercent: -0.83 },
+  "RELIANCE": { name: "Reliance Industries Ltd", price: 1320.00, change: 6.60, changePercent: 0.50 },
+  "TCS": { name: "Tata Consultancy Services Ltd", price: 2498.50, change: 2.75, changePercent: 0.11 },
+  "INFY": { name: "Infosys Ltd", price: 1174.00, change: 6.65, changePercent: 0.57 },
+  "BHARTIARTL": { name: "Bharti Airtel Ltd", price: 2094.20, change: 37.25, changePercent: 1.81 },
+  "HDFCBANK": { name: "HDFCBANK", price: 785.45, change: 25.40, changePercent: 3.35 },
+  "ONGC": { name: "ONGC", price: 260.00, change: -0.65, changePercent: -0.25 },
+  "WIPRO": { name: "WIPRO", price: 545.00, change: 1.75, changePercent: 0.32 },
+  "M&M": { name: "M&M", price: 2840.00, change: 23.90, changePercent: 0.85 },
+  "KPITTECH": { name: "KPITTECH", price: 1420.00, change: 21.50, changePercent: 1.54 },
+  "QUICKHEAL": { name: "QUICKHEAL", price: 540.00, change: -2.45, changePercent: -0.45 },
+  "SBIN": { name: "SBIN", price: 810.00, change: -2.75, changePercent: -0.34 },
+  "ITC": { name: "ITC", price: 468.00, change: 3.70, changePercent: 0.80 },
+  "HUL": { name: "Hindustan Unilever Ltd", price: 2380.00, change: 5.00, changePercent: 0.21 },
+  "HINDUNILVR": { name: "Hindustan Unilever Ltd", price: 2380.00, change: 5.00, changePercent: 0.21 },
+  "TATAPOWER": { name: "Tata Power Company Ltd", price: 395.00, change: 2.90, changePercent: 0.74 },
+  "TATAMOTORS": { name: "Tata Motors Ltd", price: 785.00, change: 9.10, changePercent: 1.16 },
+  "ZOMATO": { name: "Zomato Ltd", price: 260.00, change: 4.40, changePercent: 1.70 },
+  "PAYTM": { name: "Paytm", price: 820.00, change: -6.80, changePercent: -0.83 },
 };
+
+// Seed rest of directory into fallback baselines
+INDIAN_STOCKS_DIRECTORY.forEach((stock) => {
+  if (!fallbackBaselines[stock.symbol]) {
+    fallbackBaselines[stock.symbol] = {
+      name: stock.name,
+      price: stock.baseline,
+      change: 0.0,
+      changePercent: 0.0,
+    };
+  }
+});
 
 /**
  * Normalizes input stock symbol to Yahoo Finance ticker:
@@ -381,11 +395,57 @@ async function getHistory(rawSymbol, timeframe = '1D') {
   }
 }
 
+/**
+ * Searches top Indian stocks by symbol or name and returns live quotes
+ */
+async function searchStocks(query) {
+  if (!query || typeof query !== 'string') return [];
+  const q = query.trim().toUpperCase();
+  if (!q) return [];
+
+  // Match symbols or names from Indian stocks directory
+  const matches = INDIAN_STOCKS_DIRECTORY.filter(
+    (stock) => stock.symbol.toUpperCase().includes(q) || stock.name.toUpperCase().includes(q) || stock.sector.toUpperCase().includes(q)
+  ).slice(0, 8);
+
+  const results = await Promise.all(
+    matches.map(async (stock) => {
+      try {
+        const quote = await getQuote(stock.symbol);
+        return {
+          symbol: stock.symbol,
+          name: stock.name,
+          sector: stock.sector,
+          price: quote.price,
+          percent: quote.percent,
+          isDown: quote.isDown,
+          exchange: "NSE",
+          isLive: quote.isLive,
+        };
+      } catch (err) {
+        return {
+          symbol: stock.symbol,
+          name: stock.name,
+          sector: stock.sector,
+          price: stock.baseline,
+          percent: "+0.00%",
+          isDown: false,
+          exchange: "NSE",
+          isLive: false,
+        };
+      }
+    })
+  );
+
+  return results;
+}
+
 module.exports = {
   getQuote,
   getMultipleQuotes,
   getIndices,
   getHistory,
+  searchStocks,
   normalizeSymbol,
   getDisplaySymbol,
 };

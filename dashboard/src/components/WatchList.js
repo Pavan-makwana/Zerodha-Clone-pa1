@@ -9,9 +9,11 @@ import {
   DeleteOutline,
   Add,
   FiberManualRecord,
+  SearchOutlined,
 } from "@mui/icons-material";
 
 import { watchlist as defaultLocalWatchlist } from "../data/data";
+import { INDIAN_STOCKS_DIRECTORY } from "../data/indianStocks";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -23,7 +25,7 @@ const WatchList = () => {
   const [isAddingStock, setIsAddingStock] = useState(false);
   const [activeTab, setActiveTab] = useState(1);
   const [isLiveStreaming, setIsLiveStreaming] = useState(false);
-  const { showToast } = useContext(GeneralContext);
+  const { showToast, openBuyWindow, openSellWindow, openChartWindow } = useContext(GeneralContext);
 
   // Sync real-time market quotes for given items
   const syncLiveMarketPrices = async (items) => {
@@ -99,7 +101,6 @@ const WatchList = () => {
             const newPrice = Math.max(1, Number((stock.price + delta).toFixed(2)));
             const isDown = delta < 0;
 
-            // calculate new net percent
             const currentPctNum = parseFloat(stock.percent || "0");
             const newPctNum = currentPctNum + (pctChange * 0.5);
             const percentStr = `${newPctNum >= 0 ? "+" : ""}${newPctNum.toFixed(2)}%`;
@@ -137,11 +138,13 @@ const WatchList = () => {
           percent = liveRes.data.percent || "+0.00%";
           isDown = liveRes.data.isDown || false;
         } else {
-          price = 500.0;
+          // Check local directory
+          const match = INDIAN_STOCKS_DIRECTORY.find((s) => s.symbol === symbol);
+          price = match ? match.baseline : 500.0;
         }
       } catch (err) {
-        console.warn("Live ticker lookup failed, using default:", err.message);
-        price = 500.0;
+        const match = INDIAN_STOCKS_DIRECTORY.find((s) => s.symbol === symbol);
+        price = match ? match.baseline : 500.0;
       }
     }
 
@@ -173,6 +176,44 @@ const WatchList = () => {
     setIsAddingStock(false);
   };
 
+  const handleAddDirectStock = async (marketStock) => {
+    const symbol = marketStock.symbol;
+    let price = marketStock.baseline;
+    let percent = "+0.50%";
+    let isDown = false;
+
+    try {
+      const liveRes = await axios.get(`${API_BASE_URL}/api/market/quote/${symbol}`, { timeout: 4000 });
+      if (liveRes.data?.price) {
+        price = liveRes.data.price;
+        percent = liveRes.data.percent || "+0.50%";
+        isDown = liveRes.data.isDown || false;
+      }
+    } catch (e) {}
+
+    const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    try {
+      const res = await axios.post(
+        `${API_BASE_URL}/watchlist/add`,
+        { name: symbol, price },
+        { withCredentials: true, headers }
+      );
+      setWatchlistItems((prev) => [...prev, { ...res.data, percent, isDown }]);
+    } catch (err) {
+      setWatchlistItems((prev) => [...prev, { name: symbol, price, percent, isDown }]);
+    }
+
+    showToast({
+      title: "Stock Added",
+      message: `Added ${symbol} (${marketStock.name}) at ₹${price.toFixed(2)} to watchlist.`,
+      type: "success",
+      duration: 5000,
+    });
+    setSearchTerm("");
+  };
+
   const handleDeleteStock = async (stockName) => {
     try {
       const token = localStorage.getItem("token");
@@ -190,18 +231,32 @@ const WatchList = () => {
     showToast({ title: "Watchlist Updated", message: `Removed ${stockName} from watchlist.`, type: "info", duration: 5000 });
   };
 
+  // 1. Current Watchlist Items matching search
   const filteredWatchlist = watchlistItems.filter((stock) =>
     stock.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // 2. Global Indian Market Directory Results matching search (excluding already in watchlist)
+  const existingSymbols = new Set(watchlistItems.map((s) => s.name.toUpperCase()));
+  const marketSearchResults = searchTerm.trim().length > 0
+    ? INDIAN_STOCKS_DIRECTORY.filter(
+        (s) =>
+          !existingSymbols.has(s.symbol) &&
+          (s.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.sector.toLowerCase().includes(searchTerm.toLowerCase()))
+      ).slice(0, 8)
+    : [];
+
   return (
     <div className="watchlist-container">
+      {/* Search Input Bar */}
       <div className="search-container" style={{ position: "relative" }}>
         <input
           type="text"
           name="search"
           id="search"
-          placeholder="Search eg: infy, bse, tcs, reliance"
+          placeholder="Search eg: reliance, tcs, hdfc, infy, tata"
           className="search"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -211,6 +266,7 @@ const WatchList = () => {
         </span>
       </div>
 
+      {/* Watchlist Header Bar */}
       <div style={{ padding: "8px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <span style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Watchlist 1</span>
@@ -252,6 +308,7 @@ const WatchList = () => {
         </button>
       </div>
 
+      {/* Manual Quick Add Form */}
       {isAddingStock && (
         <form
           onSubmit={handleAddStock}
@@ -298,6 +355,7 @@ const WatchList = () => {
         </form>
       )}
 
+      {/* Current Watchlist Items */}
       <ul className="list">
         {filteredWatchlist.length > 0 ? (
           filteredWatchlist.map((stock, index) => {
@@ -310,11 +368,53 @@ const WatchList = () => {
             );
           })
         ) : (
-          <li style={{ padding: "16px", color: "#888", textAlign: "center" }}>
-            No stocks found matching "{searchTerm}"
-          </li>
+          searchTerm.trim().length === 0 && (
+            <li style={{ padding: "16px", color: "#888", textAlign: "center" }}>
+              Your watchlist is empty. Search any Indian stock above to add!
+            </li>
+          )
         )}
       </ul>
+
+      {/* Global Indian Market (NSE) Search Results */}
+      {marketSearchResults.length > 0 && (
+        <div style={{ borderTop: "2px solid #e2e8f0", background: "#f8fafc" }}>
+          <div
+            style={{
+              padding: "7px 14px",
+              fontSize: "11px",
+              fontWeight: 700,
+              color: "#475569",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#f1f5f9",
+              letterSpacing: "0.5px",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <SearchOutlined style={{ fontSize: "14px", color: "#387ed1" }} />
+              NSE MARKET DIRECTORY
+            </span>
+            <span style={{ fontSize: "10px", color: "#64748b" }}>
+              {marketSearchResults.length} stocks found
+            </span>
+          </div>
+
+          <ul className="list" style={{ margin: 0, padding: 0 }}>
+            {marketSearchResults.map((stock) => (
+              <MarketSearchResultRow
+                key={stock.symbol}
+                stock={stock}
+                onAdd={() => handleAddDirectStock(stock)}
+                onBuy={() => openBuyWindow(stock.symbol)}
+                onSell={() => openSellWindow(stock.symbol)}
+                onChart={() => openChartWindow(stock.symbol)}
+              />
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Kite Watchlist Pagination Bar */}
       <div style={{
@@ -349,7 +449,7 @@ const WatchList = () => {
             </button>
           ))}
         </div>
-        <span style={{ fontSize: "11px", color: "#999" }}>Kite 3.0</span>
+        <span style={{ fontSize: "11px", color: "#999" }}>Kite 3.0 &bull; NSE Live</span>
       </div>
     </div>
   );
@@ -444,5 +544,124 @@ const WatchListActions = ({ uid, onDelete }) => {
         </Tooltip>
       </span>
     </span>
+  );
+};
+
+/**
+ * Global Search Result Row Component
+ * Allows 1-click addition to Watchlist, Live Chart inspection, and Buy/Sell
+ */
+const MarketSearchResultRow = ({ stock, onAdd, onBuy, onSell, onChart }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <li
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: "8px 14px",
+        borderBottom: "1px solid #f1f5f9",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: hovered ? "#f8fafc" : "#ffffff",
+        transition: "background 0.15s ease",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0, paddingRight: "8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <strong style={{ fontSize: "12px", color: "#0f172a" }}>{stock.symbol}</strong>
+          <span style={{ fontSize: "10px", background: "#f1f5f9", color: "#64748b", padding: "1px 5px", borderRadius: "3px" }}>
+            NSE
+          </span>
+        </div>
+        <div style={{ fontSize: "11px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {stock.name} &bull; <span style={{ color: "#94a3b8" }}>{stock.sector}</span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <span style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a", whiteSpace: "nowrap" }}>
+          ₹{stock.baseline.toFixed(2)}
+        </span>
+
+        {hovered ? (
+          <div style={{ display: "flex", gap: "4px" }}>
+            <Tooltip title="Add to Watchlist" arrow>
+              <button
+                type="button"
+                onClick={onAdd}
+                style={{
+                  background: "#00a25b",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "3px",
+                  padding: "3px 7px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                + Add
+              </button>
+            </Tooltip>
+            <Tooltip title="View Candlestick Chart" arrow>
+              <button
+                type="button"
+                onClick={onChart}
+                style={{
+                  background: "#f1f5f9",
+                  color: "#334155",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "3px",
+                  padding: "3px 6px",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <BarChartOutlined style={{ fontSize: "14px" }} />
+              </button>
+            </Tooltip>
+            <Tooltip title="Buy" arrow>
+              <button
+                type="button"
+                onClick={onBuy}
+                style={{
+                  background: "#387ed1",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "3px",
+                  padding: "3px 7px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                B
+              </button>
+            </Tooltip>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onAdd}
+            style={{
+              background: "#e8f2fc",
+              color: "#387ed1",
+              border: "1px solid #d0e3fa",
+              borderRadius: "3px",
+              padding: "2px 8px",
+              fontSize: "11px",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            + Add
+          </button>
+        )}
+      </div>
+    </li>
   );
 };

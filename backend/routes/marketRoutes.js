@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { getIndices, getQuote, getMultipleQuotes, getHistory } = require('../services/marketService');
+const { getIndices, getQuote, getMultipleQuotes, getHistory, searchStocks } = require('../services/marketService');
 
 // Default watchlist tickers if none requested
 const DEFAULT_SYMBOLS = [
@@ -75,6 +75,21 @@ router.get('/history/:symbol', async (req, res) => {
   } catch (err) {
     console.error(`Error fetching history for ${req.params.symbol}:`, err.message);
     res.status(500).json({ message: `Failed to fetch history for ${req.params.symbol}`, error: err.message });
+  }
+});
+
+/**
+ * GET /api/market/search?q=tata
+ * Searches Indian stocks across NSE/BSE and returns live quotes
+ */
+router.get('/search', async (req, res) => {
+  try {
+    const q = req.query.q || "";
+    const results = await searchStocks(q);
+    res.status(200).json(results);
+  } catch (err) {
+    console.error("Error searching stocks:", err.message);
+    res.status(500).json({ message: "Stock search failed", error: err.message });
   }
 });
 

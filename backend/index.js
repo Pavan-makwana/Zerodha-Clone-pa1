@@ -58,41 +58,42 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Default watchlist data for new users
+// Default watchlist data for new users (Real 2026 Indian Market Baselines)
 const defaultWatchlist = [
-  { name: "INFY", price: 1555.45, percent: "-1.60%", isDown: true },
-  { name: "ONGC", price: 116.8, percent: "-0.09%", isDown: true },
-  { name: "TCS", price: 3194.8, percent: "-0.25%", isDown: true },
-  { name: "KPITTECH", price: 266.45, percent: "3.54%", isDown: false },
-  { name: "QUICKHEAL", price: 308.55, percent: "-0.15%", isDown: true },
-  { name: "WIPRO", price: 577.75, percent: "0.32%", isDown: false },
-  { name: "M&M", price: 779.8, percent: "-0.01%", isDown: true },
-  { name: "RELIANCE", price: 2112.4, percent: "1.44%", isDown: false },
-  { name: "HUL", price: 512.4, percent: "1.04%", isDown: false },
+  { name: "RELIANCE", price: 1320.00, percent: "+0.50%", isDown: false },
+  { name: "TCS", price: 2498.50, percent: "+0.11%", isDown: false },
+  { name: "INFY", price: 1174.00, percent: "+0.57%", isDown: false },
+  { name: "BHARTIARTL", price: 2094.20, percent: "+1.81%", isDown: false },
+  { name: "HDFCBANK", price: 785.45, percent: "+3.35%", isDown: false },
+  { name: "ONGC", price: 260.00, percent: "-0.25%", isDown: true },
+  { name: "WIPRO", price: 545.00, percent: "+0.32%", isDown: false },
+  { name: "M&M", price: 2840.00, percent: "+0.85%", isDown: false },
+  { name: "KPITTECH", price: 1420.00, percent: "+1.54%", isDown: false },
+  { name: "QUICKHEAL", price: 540.00, percent: "-0.45%", isDown: true },
 ];
 
 // Initial demo holdings for newly registered users
 const defaultHoldings = [
-  { name: "BHARTIARTL", qty: 2, avg: 538.05, price: 541.15, net: "+0.58%", day: "+2.99%" },
-  { name: "HDFCBANK", qty: 2, avg: 1383.4, price: 1522.35, net: "+10.04%", day: "+0.11%" },
-  { name: "HINDUNILVR", qty: 1, avg: 2335.85, price: 2417.4, net: "+3.49%", day: "+0.21%" },
-  { name: "INFY", qty: 1, avg: 1350.5, price: 1555.45, net: "+15.18%", day: "-1.60%" },
-  { name: "ITC", qty: 5, avg: 202.0, price: 207.9, net: "+2.92%", day: "+0.80%" },
-  { name: "KPITTECH", qty: 5, avg: 250.3, price: 266.45, net: "+6.45%", day: "+3.54%" },
-  { name: "M&M", qty: 2, avg: 809.9, price: 779.8, net: "-3.72%", day: "-0.01%" },
-  { name: "RELIANCE", qty: 1, avg: 2193.7, price: 2112.4, net: "-3.71%", day: "+1.44%" },
-  { name: "SBIN", qty: 4, avg: 324.35, price: 430.2, net: "+32.63%", day: "-0.34%" },
-  { name: "SGBMAY29", qty: 2, avg: 4727.0, price: 4719.0, net: "-0.17%", day: "+0.15%" },
-  { name: "TATAPOWER", qty: 5, avg: 104.2, price: 124.15, net: "+19.15%", day: "-0.24%" },
-  { name: "TCS", qty: 1, avg: 3041.7, price: 3194.8, net: "+5.03%", day: "-0.25%" },
-  { name: "WIPRO", qty: 4, avg: 489.3, price: 577.75, net: "+18.08%", day: "+0.32%" },
+  { name: "BHARTIARTL", qty: 2, avg: 2040.00, price: 2094.20, net: "+2.65%", day: "+1.81%" },
+  { name: "HDFCBANK", qty: 4, avg: 760.00, price: 785.45, net: "+3.35%", day: "+0.45%" },
+  { name: "HINDUNILVR", qty: 1, avg: 2335.85, price: 2380.00, net: "+1.89%", day: "+0.21%" },
+  { name: "INFY", qty: 2, avg: 1150.00, price: 1174.00, net: "+2.09%", day: "+0.57%" },
+  { name: "ITC", qty: 5, avg: 455.00, price: 468.00, net: "+2.86%", day: "+0.80%" },
+  { name: "KPITTECH", qty: 2, avg: 1380.00, price: 1420.00, net: "+2.90%", day: "+1.54%" },
+  { name: "M&M", qty: 1, avg: 2780.00, price: 2840.00, net: "+2.16%", day: "+0.85%" },
+  { name: "RELIANCE", qty: 2, avg: 1295.00, price: 1320.00, net: "+1.93%", day: "+0.50%" },
+  { name: "SBIN", qty: 4, avg: 790.00, price: 810.00, net: "+2.53%", day: "-0.34%" },
+  { name: "SGBMAY29", qty: 2, avg: 4727.00, price: 4719.00, net: "-0.17%", day: "+0.15%" },
+  { name: "TATAPOWER", qty: 5, avg: 380.00, price: 395.00, net: "+3.95%", day: "+0.74%" },
+  { name: "TCS", qty: 1, avg: 2460.00, price: 2498.50, net: "+1.57%", day: "+0.11%" },
+  { name: "WIPRO", qty: 4, avg: 535.00, price: 545.00, net: "+1.87%", day: "+0.32%" },
 ];
 
 const defaultPositions = [
-  { product: "CNC", name: "EVEREADY", qty: 2, avg: 316.27, price: 312.35, net: "+0.58%", day: "-1.24%", isLoss: true },
-  { product: "CNC", name: "JUBLFOOD", qty: 1, avg: 3124.75, price: 3082.65, net: "+10.04%", day: "-1.35%", isLoss: true },
-  { product: "FUT", name: "TCS", qty: 200, avg: 2400.00, price: 2550.50, net: "+6.27%", day: "+1.50%", isLoss: false },
-  { product: "CNC", name: "RELIANCE", qty: 10, avg: 2400.00, price: 2550.50, net: "+6.27%", day: "+1.50%", isLoss: false },
+  { product: "CNC", name: "EVEREADY", qty: 2, avg: 375.00, price: 380.00, net: "+1.33%", day: "-0.45%", isLoss: false },
+  { product: "CNC", name: "JUBLFOOD", qty: 2, avg: 570.00, price: 580.00, net: "+1.75%", day: "+0.35%", isLoss: false },
+  { product: "FUT", name: "TCS", qty: 25, avg: 2480.00, price: 2498.50, net: "+0.75%", day: "+0.11%", isLoss: false },
+  { product: "CNC", name: "RELIANCE", qty: 10, avg: 1310.00, price: 1320.00, net: "+0.76%", day: "+0.50%", isLoss: false },
 ];
 
 // Routes
@@ -121,6 +122,7 @@ app.get('/health', (req, res) => {
 // User Isolated Holdings
 app.get('/allholdings', verifyToken, async (req, res) => {
   try {
+    let rawHoldings = [];
     if (isDbConnected()) {
       let userHoldings = await HoldingsModel.find({ userId: req.user });
       if (userHoldings.length === 0) {
@@ -137,10 +139,35 @@ app.get('/allholdings', verifyToken, async (req, res) => {
         }));
         userHoldings = await HoldingsModel.insertMany(initial);
       }
-      return res.status(200).json(userHoldings);
+      rawHoldings = userHoldings;
     } else {
-      return res.status(200).json(memoryStore.getHoldings(req.user));
+      rawHoldings = memoryStore.getHoldings(req.user);
     }
+
+    // Enrich holdings with live market prices & dynamic P&L
+    const { getQuote } = require('./services/marketService');
+    const enriched = await Promise.all(
+      rawHoldings.map(async (h) => {
+        try {
+          const live = await getQuote(h.name);
+          const obj = h.toObject ? h.toObject() : { ...h };
+          const livePrice = live.price || obj.price;
+          const avg = obj.avg || livePrice;
+          const netVal = avg > 0 ? (((livePrice - avg) / avg) * 100).toFixed(2) : "0.00";
+          return {
+            ...obj,
+            price: livePrice,
+            day: live.percent || obj.day,
+            net: `${Number(netVal) >= 0 ? "+" : ""}${netVal}%`,
+            isLoss: live.isDown,
+          };
+        } catch (e) {
+          return h;
+        }
+      })
+    );
+
+    return res.status(200).json(enriched);
   } catch (err) {
     return res.status(500).json({ message: err.message || "Failed to fetch holdings" });
   }
@@ -193,16 +220,40 @@ app.get('/allorders', verifyToken, async (req, res) => {
 // User Watchlist Endpoints
 app.get('/watchlist', verifyToken, async (req, res) => {
   try {
+    let items = [];
     if (isDbConnected()) {
       let userWatchlist = await WatchlistModel.find({ userId: req.user });
       if (userWatchlist.length === 0) {
         const initial = defaultWatchlist.map((s) => ({ ...s, userId: req.user }));
         userWatchlist = await WatchlistModel.insertMany(initial);
       }
-      return res.status(200).json(userWatchlist);
+      items = userWatchlist;
     } else {
-      return res.status(200).json(memoryStore.getWatchlist(req.user));
+      items = memoryStore.getWatchlist(req.user);
     }
+
+    // Enrich with live market prices from marketService
+    const { getQuote } = require('./services/marketService');
+    const enriched = await Promise.all(
+      items.map(async (item) => {
+        try {
+          const rawName = item.name;
+          const live = await getQuote(rawName);
+          const obj = item.toObject ? item.toObject() : { ...item };
+          return {
+            ...obj,
+            price: live.price,
+            percent: live.percent,
+            isDown: live.isDown,
+            isLive: live.isLive,
+          };
+        } catch (e) {
+          return item;
+        }
+      })
+    );
+
+    return res.status(200).json(enriched);
   } catch (err) {
     return res.status(500).json({ message: err.message || "Failed to fetch watchlist" });
   }

@@ -7,7 +7,8 @@ const {
   getQuote,
   getMultipleQuotes,
   getIndices,
-  getHistory
+  getHistory,
+  searchStocks
 } = require('../services/marketService');
 
 test('Market Symbol Normalization', () => {
@@ -72,4 +73,16 @@ test('Get Historical Candlestick data returns valid OHLC candles', async () => {
   assert.ok(typeof firstCandle.low === 'number', 'Candle low should be number');
   assert.ok(typeof firstCandle.close === 'number', 'Candle close should be number');
   assert.ok(firstCandle.high >= firstCandle.low, 'High should be >= Low');
+});
+
+test('Search Indian Stocks returns matched equities with live prices', async () => {
+  const results = await searchStocks('TATA');
+  assert.ok(Array.isArray(results), 'Search results should be an array');
+  assert.ok(results.length > 0, 'Should return matching Tata stocks');
+  const symbols = results.map(r => r.symbol);
+  assert.ok(symbols.includes('TCS') || symbols.includes('TATAMOTORS') || symbols.includes('TATASTEEL'));
+  results.forEach(stock => {
+    assert.ok(stock.price > 0, `${stock.symbol} should have positive price`);
+    assert.strictEqual(stock.exchange, 'NSE');
+  });
 });
