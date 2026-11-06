@@ -228,4 +228,14 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Fixed search input color bug in index.css (was white-on-white text) to crisp dark slate (#0f172a)
    ├── [x] Harmonized TopBar NIFTY 50 and SENSEX green indices and percentage levels
    └── [x] Rebuilt production bundles with zero ESLint warnings and zero errors
+
+[Phase 8: Session-Aware Navigation & One-Click Demo Access] - COMPLETED ✅
+   ├── [x] Fixed Navbar item wrapping (eliminated 3-line wrapping of 'Go to Dashboard' and 'Hi, Demo Trader')
+   ├── [x] Constrained brand logo width to 135px and removed wrapping <form> inside navbar-collapse
+   ├── [x] Built session-aware Login page: detects active session and shows 'Go to Dashboard' card instead of blank form
+   ├── [x] Added 'Switch Account' option allowing users to easily re-authenticate as another user
+   ├── [x] Built session-aware Signup page displaying current logged-in status
+   ├── [x] Added One-Click Demo Access panel on Login: 1-click buttons for Demo Trader and Pavan Makwana
+   ├── [x] Guaranteed demo credentials reliability: backend auto-seeds demo accounts if connecting to fresh database
+   └── [x] Shared explicit demo credentials for instant evaluation (demo@zerodha.com / demo1234, pa10506@zerodha.com / Makwanap@1)
 ```
