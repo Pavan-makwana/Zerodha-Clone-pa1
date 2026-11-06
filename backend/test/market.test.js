@@ -6,7 +6,8 @@ const {
   getDisplaySymbol,
   getQuote,
   getMultipleQuotes,
-  getIndices
+  getIndices,
+  getHistory
 } = require('../services/marketService');
 
 test('Market Symbol Normalization', () => {
@@ -55,4 +56,20 @@ test('Get Multiple Quotes batch processing', async () => {
   quotes.forEach(q => {
     assert.ok(q.price > 0, `${q.symbol} price should be greater than 0`);
   });
+});
+
+test('Get Historical Candlestick data returns valid OHLC candles', async () => {
+  const history = await getHistory('INFY', '1D');
+  assert.ok(history, 'History payload should exist');
+  assert.strictEqual(history.symbol, 'INFY');
+  assert.strictEqual(history.timeframe, '1D');
+  assert.ok(Array.isArray(history.candles), 'Candles should be an array');
+  assert.ok(history.candles.length > 0, 'Should return at least 1 candle');
+
+  const firstCandle = history.candles[0];
+  assert.ok(typeof firstCandle.open === 'number', 'Candle open should be number');
+  assert.ok(typeof firstCandle.high === 'number', 'Candle high should be number');
+  assert.ok(typeof firstCandle.low === 'number', 'Candle low should be number');
+  assert.ok(typeof firstCandle.close === 'number', 'Candle close should be number');
+  assert.ok(firstCandle.high >= firstCandle.low, 'High should be >= Low');
 });

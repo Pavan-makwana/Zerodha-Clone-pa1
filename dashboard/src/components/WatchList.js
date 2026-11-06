@@ -433,7 +433,7 @@ const WatchListActions = ({ uid, onDelete }) => {
           <button className="sell" onClick={handleSellClick}>Sell</button>
         </Tooltip>
         <Tooltip title="Chart" placement="top" arrow TransitionComponent={Grow}>
-          <button className="action">
+          <button className="action" onClick={() => generalContext.openChartWindow(uid)}>
             <BarChartOutlined className="icon" />
           </button>
         </Tooltip>

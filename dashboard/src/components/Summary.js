@@ -1,7 +1,9 @@
 // dashboard/src/components/Summary.js
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
+import GeneralContext from "./GeneralContext";
+import { CandlestickChartOutlined } from "@mui/icons-material";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -31,6 +33,7 @@ const Summary = () => {
   const [allHoldings, setAllHoldings] = useState([]);
   const [availableMargin, setAvailableMargin] = useState(100000.0);
   const [loading, setLoading] = useState(true);
+  const generalContext = useContext(GeneralContext);
 
   const fetchUserData = () => {
     const token = localStorage.getItem("token");
@@ -211,7 +214,28 @@ const Summary = () => {
             Account ID: {user.id || user._id ? String(user.id || user._id).substring(0, 8).toUpperCase() : "PA10506"} &bull; Equity Trading Active
           </span>
         </div>
-        <div style={{ display: "flex", gap: "10px" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => generalContext.openChartWindow("NIFTY 50")}
+            style={{
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "20px",
+              padding: "5px 14px",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              color: "#387ed1",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+            }}
+          >
+            <CandlestickChartOutlined style={{ fontSize: "16px" }} />
+            Live Market Chart
+          </button>
           <span style={{ background: "#e6f7ed", color: "#00a25b", padding: "4px 10px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: 600 }}>
             Market Open
           </span>

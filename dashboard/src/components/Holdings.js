@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { VerticalGraph } from "./VerticalGraph";
 import GeneralContext from "./GeneralContext";
+import { BarChartOutlined } from "@mui/icons-material";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -110,6 +111,25 @@ const Holdings = () => {
                       onClick={() => generalContext.openSellWindow(stock.name)}
                     >
                       Sell
+                    </button>
+                    <button
+                      title="View Candlestick Chart"
+                      style={{
+                        padding: "3px 6px",
+                        fontSize: "11px",
+                        marginLeft: "4px",
+                        background: "#f1f5f9",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "3px",
+                        cursor: "pointer",
+                        color: "#475569",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        verticalAlign: "middle",
+                      }}
+                      onClick={() => generalContext.openChartWindow(stock.name)}
+                    >
+                      <BarChartOutlined style={{ fontSize: "14px" }} />
                     </button>
                   </td>
                 </tr>

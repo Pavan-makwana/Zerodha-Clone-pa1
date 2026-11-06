@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { getIndices, getQuote, getMultipleQuotes } = require('../services/marketService');
+const { getIndices, getQuote, getMultipleQuotes, getHistory } = require('../services/marketService');
 
 // Default watchlist tickers if none requested
 const DEFAULT_SYMBOLS = [
@@ -56,6 +56,25 @@ router.get('/quote/:symbol', async (req, res) => {
   } catch (err) {
     console.error(`Error fetching quote for ${req.params.symbol}:`, err.message);
     res.status(500).json({ message: `Failed to fetch quote for ${req.params.symbol}`, error: err.message });
+  }
+});
+
+/**
+ * GET /api/market/history/:symbol?timeframe=1D
+ * Returns historical OHLC candlestick data for the specified symbol & timeframe
+ */
+router.get('/history/:symbol', async (req, res) => {
+  try {
+    const symbol = req.params.symbol;
+    const timeframe = req.query.timeframe || '1D';
+    if (!symbol) {
+      return res.status(400).json({ message: "Symbol is required" });
+    }
+    const history = await getHistory(symbol, timeframe);
+    res.status(200).json(history);
+  } catch (err) {
+    console.error(`Error fetching history for ${req.params.symbol}:`, err.message);
+    res.status(500).json({ message: `Failed to fetch history for ${req.params.symbol}`, error: err.message });
   }
 });
 

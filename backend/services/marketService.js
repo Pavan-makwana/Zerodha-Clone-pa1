@@ -230,10 +230,162 @@ async function getIndices() {
   };
 }
 
+const historyCache = new Map();
+const HISTORY_CACHE_TTL = 45 * 1000;
+
+function formatCandleTime(ts, tf) {
+  const d = new Date(ts);
+  if (tf === '1D') {
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else if (tf === '1W') {
+    return `${d.toLocaleDateString([], { weekday: 'short' })} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  } else if (tf === '1M') {
+    return d.toLocaleDateString([], { day: '2-digit', month: 'short' });
+  } else {
+    return d.toLocaleDateString([], { month: 'short', year: '2-digit' });
+  }
+}
+
+function generateSyntheticCandles(basePrice = 1000, tf = '1D') {
+  const count = tf === '1D' ? 40 : tf === '1W' ? 35 : tf === '1M' ? 25 : 30;
+  const candles = [];
+  let currentClose = basePrice;
+  const now = Date.now();
+  const stepMs = tf === '1D' ? 5 * 60 * 1000 : tf === '1W' ? 30 * 60 * 1000 : 24 * 60 * 60 * 1000;
+
+  for (let i = count; i >= 0; i--) {
+    const ts = now - (i * stepMs);
+    const delta = (Math.random() * 0.016 - 0.0078) * currentClose;
+    const open = Number(currentClose.toFixed(2));
+    const close = Number(Math.max(1, open + delta).toFixed(2));
+    const high = Number((Math.max(open, close) + Math.random() * (open * 0.006)).toFixed(2));
+    const low = Number((Math.min(open, close) - Math.random() * (open * 0.006)).toFixed(2));
+    const volume = Math.floor(Math.random() * 80000 + 20000);
+
+    candles.push({
+      timestamp: ts,
+      time: formatCandleTime(ts, tf),
+      open,
+      high,
+      low,
+      close,
+      volume,
+      isUp: close >= open,
+    });
+    currentClose = close;
+  }
+  return candles;
+}
+
+/**
+ * Fetches historical OHLC candle data for candlestick charts
+ */
+async function getHistory(rawSymbol, timeframe = '1D') {
+  const cleanTf = ['1D', '1W', '1M', '1Y'].includes(timeframe.toUpperCase()) ? timeframe.toUpperCase() : '1D';
+  const yahooSymbol = normalizeSymbol(rawSymbol);
+  const cacheKey = `${yahooSymbol}_${cleanTf}`;
+  const now = Date.now();
+
+  if (historyCache.has(cacheKey)) {
+    const cached = historyCache.get(cacheKey);
+    if (now - cached.timestamp < HISTORY_CACHE_TTL) {
+      return cached.data;
+    }
+  }
+
+  const tfConfig = cleanTf === '1W' ? { interval: '15m', range: '5d' } :
+                   cleanTf === '1M' ? { interval: '1d', range: '1mo' } :
+                   cleanTf === '1Y' ? { interval: '1wk', range: '1y' } :
+                   { interval: '5m', range: '1d' };
+
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${tfConfig.interval}&range=${tfConfig.range}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) throw new Error(`Yahoo responded with ${res.status}`);
+    const data = await res.json();
+    const result = data?.chart?.result?.[0];
+    const timestamps = result?.timestamp || [];
+    const quote = result?.indicators?.quote?.[0] || {};
+
+    const candles = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      if (quote.open?.[i] != null && quote.close?.[i] != null && quote.high?.[i] != null && quote.low?.[i] != null) {
+        const ts = timestamps[i] * 1000;
+        const open = Number(quote.open[i].toFixed(2));
+        const close = Number(quote.close[i].toFixed(2));
+        const high = Number(quote.high[i].toFixed(2));
+        const low = Number(quote.low[i].toFixed(2));
+        const volume = Math.round(quote.volume?.[i] || 0);
+
+        candles.push({
+          timestamp: ts,
+          time: formatCandleTime(ts, cleanTf),
+          open,
+          high,
+          low,
+          close,
+          volume,
+          isUp: close >= open,
+        });
+      }
+    }
+
+    if (candles.length === 0) {
+      throw new Error("No valid candle points in Yahoo response");
+    }
+
+    const payload = {
+      symbol: getDisplaySymbol(yahooSymbol),
+      yahooSymbol,
+      timeframe: cleanTf,
+      candles,
+      isLive: true,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    historyCache.set(cacheKey, { timestamp: now, data: payload });
+    return payload;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (historyCache.has(cacheKey)) {
+      return historyCache.get(cacheKey).data;
+    }
+
+    const quote = await getQuote(rawSymbol);
+    const basePrice = quote?.price || 1000;
+    const candles = generateSyntheticCandles(basePrice, cleanTf);
+
+    const payload = {
+      symbol: getDisplaySymbol(yahooSymbol),
+      yahooSymbol,
+      timeframe: cleanTf,
+      candles,
+      isLive: false,
+      fallbackReason: err.message,
+      lastUpdated: new Date().toISOString(),
+    };
+
+    historyCache.set(cacheKey, { timestamp: now, data: payload });
+    return payload;
+  }
+}
+
 module.exports = {
   getQuote,
   getMultipleQuotes,
   getIndices,
+  getHistory,
   normalizeSymbol,
   getDisplaySymbol,
 };

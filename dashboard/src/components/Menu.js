@@ -3,6 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
+import {
+  AccountCircleOutlined,
+  AccountBalanceWalletOutlined,
+  ReceiptLongOutlined,
+  ShowChartOutlined,
+  LogoutOutlined,
+} from "@mui/icons-material";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 const FRONTEND_URL = process.env.REACT_APP_FRONTEND_URL || "https://zerodha-clone-frontend-pa1.vercel.app";
@@ -218,7 +225,7 @@ const Menu = () => {
                 }}
                 onClick={() => setIsProfileDropdownOpen(false)}
               >
-                <span>👤</span> My Profile
+                <AccountCircleOutlined style={{ fontSize: "18px", color: "#64748b" }} /> My Profile
               </Link>
 
               <Link
@@ -235,7 +242,7 @@ const Menu = () => {
                 }}
                 onClick={() => setIsProfileDropdownOpen(false)}
               >
-                <span>💳</span> Funds & Margin
+                <AccountBalanceWalletOutlined style={{ fontSize: "18px", color: "#64748b" }} /> Funds & Margin
               </Link>
 
               <Link
@@ -252,7 +259,7 @@ const Menu = () => {
                 }}
                 onClick={() => setIsProfileDropdownOpen(false)}
               >
-                <span>📜</span> Order Book & Trades
+                <ReceiptLongOutlined style={{ fontSize: "18px", color: "#64748b" }} /> Order Book & Trades
               </Link>
 
               <Link
@@ -269,7 +276,7 @@ const Menu = () => {
                 }}
                 onClick={() => setIsProfileDropdownOpen(false)}
               >
-                <span>📈</span> Portfolio & Holdings
+                <ShowChartOutlined style={{ fontSize: "18px", color: "#64748b" }} /> Portfolio & Holdings
               </Link>
 
               <hr style={{ margin: "6px 0", borderColor: "#f1f5f9" }} />
@@ -291,7 +298,7 @@ const Menu = () => {
                   gap: "8px",
                 }}
               >
-                <span>🚪</span> Logout
+                <LogoutOutlined style={{ fontSize: "18px", color: "#df514c" }} /> Logout
               </button>
             </div>
           </div>

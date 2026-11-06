@@ -172,7 +172,7 @@ const Login = () => {
             Enter your Zerodha credentials to access your trading portal
           </p>
 
-          {/* ⚡ ONE-CLICK DEMO LOGIN BUTTONS */}
+          {/* ONE-CLICK DEMO LOGIN BUTTONS */}
           <div style={{
             background: "#f8fafc",
             border: "1px solid #e2e8f0",
@@ -181,8 +181,8 @@ const Login = () => {
             marginBottom: "20px",
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                ⚡ One-Click Demo Login
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", display: "inline-flex", alignItems: "center" }}>
+                <i className="fa fa-bolt" style={{ color: "#387ed1", marginRight: "6px" }}></i> One-Click Demo Login
               </span>
               <span style={{ fontSize: "0.72rem", background: "#e8f2fc", color: "#387ed1", padding: "2px 6px", borderRadius: "4px", fontWeight: 600 }}>
                 Instant Access

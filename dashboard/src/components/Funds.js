@@ -3,6 +3,11 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import GeneralContext from "./GeneralContext";
+import {
+  FlashOnOutlined,
+  ShowChartOutlined,
+  AccountBalanceOutlined,
+} from "@mui/icons-material";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -160,7 +165,7 @@ const Funds = () => {
         marginBottom: "24px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "1.2rem" }}>⚡</span>
+          <FlashOnOutlined style={{ color: "#387ed1", fontSize: "22px" }} />
           <div>
             <h5 style={{ margin: 0, fontWeight: 700, color: "#0f172a", fontSize: "0.98rem" }}>
               Instant & Zero-Cost Fund Transfers
@@ -231,7 +236,7 @@ const Funds = () => {
           {/* Section Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
             <h4 style={{ margin: 0, fontWeight: 700, color: "#0f172a", fontSize: "1.15rem", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>📊</span> Equity Segment
+              <ShowChartOutlined style={{ color: "#00a25b", fontSize: "22px" }} /> Equity Segment
             </h4>
             <span style={{
               background: "#e6f7ed",
@@ -328,7 +333,7 @@ const Funds = () => {
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <h4 style={{ margin: 0, fontWeight: 700, color: "#0f172a", fontSize: "1.15rem", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>🪙</span> Commodity Segment
+                <AccountBalanceOutlined style={{ color: "#64748b", fontSize: "22px" }} /> Commodity Segment
               </h4>
               <span style={{
                 background: "#f1f5f9",
