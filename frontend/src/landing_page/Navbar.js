@@ -1,3 +1,4 @@
+// frontend/src/landing_page/Navbar.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -25,11 +26,18 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg border-bottom bg-body-tertiary" style={{ backgroundColor: "#FFF" }}>
-      <div className="container p-2 fs-6">
-        <Link className="navbar-brand" to="/">
-          <img src='media/images/logo.svg' alt='Logo' style={{ width: "30%" }} />
+    <nav className="navbar navbar-expand-lg border-bottom bg-white sticky-top" style={{ backgroundColor: "#FFFFFF" }}>
+      <div className="container py-2 px-3">
+        {/* Brand Logo */}
+        <Link className="navbar-brand d-flex align-items-center" to="/">
+          <img
+            src="media/images/logo.svg"
+            alt="Zerodha"
+            style={{ width: "135px", height: "auto" }}
+          />
         </Link>
+
+        {/* Mobile Hamburger Toggle */}
         <button
           className="navbar-toggler"
           type="button"
@@ -41,54 +49,112 @@ function Navbar() {
         >
           <span className="navbar-toggler-icon"></span>
         </button>
+
+        {/* Navigation Items */}
         <div className="collapse navbar-collapse" id="navbarSupportedContent">
-          <form className="d-flex ms-auto" role="search" onSubmit={(e) => e.preventDefault()}>
-            <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-              {currentUser ? (
-                <>
-                  <li className="nav-item">
-                    <a className="nav-link text-primary fw-semibold" href={DASHBOARD_URL}>
-                      Go to Dashboard →
-                    </a>
-                  </li>
-                  <li className="nav-item">
-                    <span className="nav-link text-muted">Hi, {currentUser.name}</span>
-                  </li>
-                  <li className="nav-item">
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="btn btn-outline-danger btn-sm ms-2"
-                      style={{ padding: "3px 10px", fontSize: "12px" }}
-                    >
-                      Logout
-                    </button>
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li className="nav-item">
-                    <Link className="nav-link text-muted" to="/signup">Signup</Link>
-                  </li>
-                  <li className="nav-item">
-                    <Link className="nav-link text-muted" to="/login">Login</Link>
-                  </li>
-                </>
-              )}
-              <li className="nav-item">
-                <Link className="nav-link text-muted" to="/about">About</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link text-muted" to="/products">Product</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link text-muted" to="/pricing">Pricing</Link>
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link text-muted" to="/support">Support</Link>
-              </li>
-            </ul>
-          </form>
+          <ul className="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center gap-2" style={{ whiteSpace: "nowrap" }}>
+            {currentUser ? (
+              <>
+                <li className="nav-item">
+                  <a
+                    className="btn btn-sm fw-semibold text-white d-inline-flex align-items-center"
+                    href={DASHBOARD_URL}
+                    style={{
+                      backgroundColor: "#387ed1",
+                      borderRadius: "20px",
+                      padding: "6px 16px",
+                      fontSize: "0.85rem",
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                      boxShadow: "0 2px 6px rgba(56, 126, 209, 0.25)",
+                    }}
+                  >
+                    Go to Dashboard &rarr;
+                  </a>
+                </li>
+                <li className="nav-item px-1">
+                  <span
+                    className="fw-semibold"
+                    style={{ color: "#1e293b", fontSize: "0.88rem", whiteSpace: "nowrap" }}
+                  >
+                    Hi, {currentUser.name}
+                  </span>
+                </li>
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="btn btn-outline-danger btn-sm"
+                    style={{
+                      padding: "4px 12px",
+                      fontSize: "0.8rem",
+                      borderRadius: "4px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Logout
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link px-2"
+                    to="/signup"
+                    style={{ color: "#475569", fontWeight: 500, fontSize: "0.9rem", whiteSpace: "nowrap" }}
+                  >
+                    Signup
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link
+                    className="nav-link px-2"
+                    to="/login"
+                    style={{ color: "#387ed1", fontWeight: 600, fontSize: "0.9rem", whiteSpace: "nowrap" }}
+                  >
+                    Login
+                  </Link>
+                </li>
+              </>
+            )}
+            <li className="nav-item">
+              <Link
+                className="nav-link px-2"
+                to="/about"
+                style={{ color: "#475569", fontWeight: 500, fontSize: "0.9rem", whiteSpace: "nowrap" }}
+              >
+                About
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link
+                className="nav-link px-2"
+                to="/products"
+                style={{ color: "#475569", fontWeight: 500, fontSize: "0.9rem", whiteSpace: "nowrap" }}
+              >
+                Product
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link
+                className="nav-link px-2"
+                to="/pricing"
+                style={{ color: "#475569", fontWeight: 500, fontSize: "0.9rem", whiteSpace: "nowrap" }}
+              >
+                Pricing
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link
+                className="nav-link px-2"
+                to="/support"
+                style={{ color: "#475569", fontWeight: 500, fontSize: "0.9rem", whiteSpace: "nowrap" }}
+              >
+                Support
+              </Link>
+            </li>
+          </ul>
         </div>
       </div>
     </nav>

@@ -85,6 +85,18 @@ const loginUser = async (req, res) => {
 
     if (isDbConnected()) {
       user = await UserModel.findOne({ email: cleanEmail });
+      if (!user) {
+        const demoUser = memoryStore.findUserByEmail(cleanEmail);
+        if (demoUser) {
+          user = new UserModel({
+            name: demoUser.name,
+            email: demoUser.email,
+            password: demoUser.password,
+            funds: demoUser.funds || 100000.0,
+          });
+          await user.save();
+        }
+      }
     } else {
       user = memoryStore.findUserByEmail(cleanEmail);
     }
