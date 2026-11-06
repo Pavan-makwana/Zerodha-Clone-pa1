@@ -46,9 +46,22 @@ const LiveChartModal = ({ symbol, onClose }) => {
   // Fetch live current quote
   const fetchCurrentQuote = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/market/quote/${stockSymbol}`, { timeout: 4000 });
+      const res = await axios.get(`${API_BASE_URL}/api/market/quote/${stockSymbol}`, { timeout: 5000 });
       if (res.data) {
         setCurrentQuote(res.data);
+        if (res.data.price) {
+          setCandles((prev) => {
+            if (!prev || prev.length === 0) return prev;
+            const updated = [...prev];
+            const last = { ...updated[updated.length - 1] };
+            last.close = res.data.price;
+            last.high = Math.max(last.high, res.data.price);
+            last.low = Math.min(last.low, res.data.price);
+            last.isUp = last.close >= last.open;
+            updated[updated.length - 1] = last;
+            return updated;
+          });
+        }
       }
     } catch (err) {
       console.warn("Could not fetch current quote:", err.message);
@@ -59,7 +72,7 @@ const LiveChartModal = ({ symbol, onClose }) => {
     fetchCandleData(timeframe);
     fetchCurrentQuote();
 
-    const quoteInterval = setInterval(fetchCurrentQuote, 15000);
+    const quoteInterval = setInterval(fetchCurrentQuote, 8000);
     return () => clearInterval(quoteInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stockSymbol, timeframe]);
@@ -208,7 +221,7 @@ const LiveChartModal = ({ symbol, onClose }) => {
               }}
             >
               <FiberManualRecord style={{ fontSize: "8px", color: "#00a25b" }} />
-              LIVE STREAM
+              LIVE STREAM • IST
             </span>
           </div>
 

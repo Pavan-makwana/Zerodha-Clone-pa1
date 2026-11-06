@@ -3,6 +3,26 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 
 /**
+ * Formats candle timestamp using client browser locale and Indian Standard Time (IST)
+ */
+export function formatDisplayTime(candle, tf = "1D") {
+  if (!candle) return "";
+  if (candle.timestamp) {
+    const d = new Date(candle.timestamp);
+    if (tf === "1D") {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+    } else if (tf === "1W") {
+      return `${d.toLocaleDateString([], { weekday: "short" })} ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true })}`;
+    } else if (tf === "1M") {
+      return d.toLocaleDateString([], { day: "2-digit", month: "short" });
+    } else {
+      return d.toLocaleDateString([], { month: "short", year: "2-digit" });
+    }
+  }
+  return candle.time || "";
+}
+
+/**
  * High-Performance Interactive Candlestick & Volume Chart
  * Screener & TradingView style with real-time price ticking, crosshairs,
  * and responsive DPI scaling.
@@ -120,7 +140,7 @@ const LiveCandlestickChart = ({
 
       ctx.setLineDash([]);
       ctx.fillStyle = "#94a3b8";
-      ctx.fillText(c.time || "", x, marginTop + chartHeight + 20);
+      ctx.fillText(formatDisplayTime(c, timeframe), x, marginTop + chartHeight + 20);
     }
 
     // 3. Draw Volume Histogram
@@ -266,7 +286,7 @@ const LiveCandlestickChart = ({
         ctx.fillText(hoverPrice.toFixed(2), marginLeft + chartWidth + 38, mousePos.y + 4);
       }
     }
-  }, [candles, currentPrice, chartType, mousePos]);
+  }, [candles, currentPrice, chartType, mousePos, timeframe]);
 
   // Handle Resize
   useEffect(() => {
@@ -374,8 +394,8 @@ const LiveCandlestickChart = ({
                 </strong>
               </div>
             )}
-            <div style={{ marginLeft: "auto", color: "#64748b", fontSize: "11px" }}>
-              {activeCandle.time}
+            <div style={{ marginLeft: "auto", color: "#64748b", fontSize: "11px", fontWeight: 600 }}>
+              {formatDisplayTime(activeCandle, timeframe)}
             </div>
           </>
         )}

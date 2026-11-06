@@ -269,4 +269,14 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Enriched GET /watchlist and GET /allholdings with live dynamic quotes and calculated real-time P&L
    ├── [x] Updated in-memory fallback stores and initial seed data to 2026 baselines
    └── [x] 12/12 automated integration tests passing and zero-warning production builds
+
+[Phase 12: Real-Time Google Finance Engine & Indian Standard Time (IST) Chart Alignment] - COMPLETED ✅
+   ├── [x] Integrated real-time Google Finance scraper into backend/services/marketService.js as primary quote engine with zero rate limits
+   ├── [x] Synchronized ZOMATO live price to ~₹363.15 INR (NSE: ETERNAL) resolving the ~₹92 discrepancy from old 260 baseline
+   ├── [x] Aligned 1D intraday candlestick timeline to official Indian Stock Market (NSE/BSE) hours: 09:15 AM IST to 03:30 PM IST
+   ├── [x] Fixed timezone mismatch: replaced server UTC formatting (which produced 10:26 AM when user was at 15:56 IST) with strict Asia/Kolkata (IST) formatting
+   ├── [x] Added client-side formatDisplayTime in LiveCandlestickChart.js using browser locale and candle timestamps
+   ├── [x] Connected LiveChartModal to real-time quote refresh every 8 seconds, synchronizing latest candle close to live Google Finance price
+   ├── [x] Added 'LIVE STREAM • IST' badge to chart modal for full timing transparency
+   └── [x] Zero-warning production build and 12/12 test pass rate
 ```

@@ -39,7 +39,8 @@ const INDIAN_STOCKS_DIRECTORY = [
   { symbol: "HCLTECH", name: "HCL Technologies Ltd", sector: "Information Technology", baseline: 1810.00 },
 
   // Trending, Tech & High Volume Equities
-  { symbol: "ZOMATO", name: "Zomato Ltd", sector: "Internet & Delivery", baseline: 260.00 },
+  { symbol: "ZOMATO", name: "Zomato Ltd (Eternal)", sector: "Internet & Delivery", baseline: 363.15 },
+  { symbol: "ETERNAL", name: "Eternal Ltd (Zomato)", sector: "Internet & Delivery", baseline: 363.15 },
   { symbol: "JIOFIN", name: "Jio Financial Services Ltd", sector: "Financial Services", baseline: 310.00 },
   { symbol: "PAYTM", name: "One97 Communications (Paytm)", sector: "Fintech", baseline: 820.00 },
   { symbol: "IRFC", name: "Indian Railway Finance Corp", sector: "Railways & Infra", baseline: 145.00 },
@@ -56,7 +57,7 @@ const INDIAN_STOCKS_DIRECTORY = [
   { symbol: "PFC", name: "Power Finance Corporation Ltd", sector: "Financial Services", baseline: 460.00 },
   { symbol: "RECLTD", name: "REC Ltd", sector: "Financial Services", baseline: 510.00 },
   { symbol: "IREDA", name: "Indian Renewable Energy Dev Agency", sector: "Renewable Energy", baseline: 195.00 },
-  { symbol: "SWIGGY", name: "Swiggy Ltd", sector: "Food Delivery & Quick Commerce", baseline: 480.00 },
+  { symbol: "SWIGGY", name: "Swiggy Ltd", sector: "Food Delivery & Quick Commerce", baseline: 191.17 },
   { symbol: "NYKAA", name: "FSN E-Commerce (Nykaa)", sector: "E-Commerce & Beauty", baseline: 175.00 },
   { symbol: "DLF", name: "DLF Ltd", sector: "Real Estate", baseline: 810.00 },
   { symbol: "INDIGO", name: "InterGlobe Aviation Ltd", sector: "Aviation", baseline: 4150.00 },
