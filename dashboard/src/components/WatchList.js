@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import axios from "axios";
 import GeneralContext from "./GeneralContext";
 import { Tooltip, Grow } from "@mui/material";
@@ -8,6 +8,7 @@ import {
   KeyboardArrowUp,
   DeleteOutline,
   Add,
+  FiberManualRecord,
 } from "@mui/icons-material";
 
 import { watchlist as defaultLocalWatchlist } from "../data/data";
@@ -21,8 +22,42 @@ const WatchList = () => {
   const [newStockPrice, setNewStockPrice] = useState("");
   const [isAddingStock, setIsAddingStock] = useState(false);
   const [activeTab, setActiveTab] = useState(1);
+  const [isLiveStreaming, setIsLiveStreaming] = useState(false);
   const { showToast } = useContext(GeneralContext);
 
+  // Sync real-time market quotes for given items
+  const syncLiveMarketPrices = async (items) => {
+    if (!items || items.length === 0) return;
+    try {
+      const symbols = items.map((s) => s.name).join(",");
+      const res = await axios.get(`${API_BASE_URL}/api/market/quotes?symbols=${symbols}`, { timeout: 6000 });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        setIsLiveStreaming(true);
+        const quoteMap = new Map();
+        res.data.forEach((q) => quoteMap.set(q.name.toUpperCase(), q));
+
+        setWatchlistItems((prev) =>
+          prev.map((item) => {
+            const live = quoteMap.get(item.name.toUpperCase());
+            if (live) {
+              return {
+                ...item,
+                price: live.price,
+                percent: live.percent,
+                isDown: live.isDown,
+                isLive: live.isLive,
+              };
+            }
+            return item;
+          })
+        );
+      }
+    } catch (err) {
+      console.warn("Could not sync live market quotes:", err.message);
+    }
+  };
+
+  // Initial load from user's saved watchlist + live market quotes
   useEffect(() => {
     const token = localStorage.getItem("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -32,25 +67,43 @@ const WatchList = () => {
       .then((res) => {
         if (Array.isArray(res.data) && res.data.length > 0) {
           setWatchlistItems(res.data);
+          syncLiveMarketPrices(res.data);
+        } else {
+          syncLiveMarketPrices(defaultLocalWatchlist);
         }
       })
       .catch((err) => {
         console.warn("Using local watchlist fallback:", err);
+        syncLiveMarketPrices(defaultLocalWatchlist);
       });
   }, []);
 
-  // Simulated live price ticks for trading realism
+  // Poll real market prices periodically (every 25 seconds)
   useEffect(() => {
-    const interval = setInterval(() => {
+    const pollInterval = setInterval(() => {
+      syncLiveMarketPrices(watchlistItems);
+    }, 25000);
+
+    return () => clearInterval(pollInterval);
+  }, [watchlistItems]);
+
+  // Subtle live micro-ticks for realistic trading terminal dynamics
+  useEffect(() => {
+    const tickInterval = setInterval(() => {
       setWatchlistItems((prevItems) => {
         return prevItems.map((stock) => {
-          // randomly tick 1 or 2 stocks every cycle
-          if (Math.random() > 0.4) {
-            const delta = (Math.random() * 2 - 0.98); // -0.98 to +1.02
+          // randomly tick ~40% of stocks each cycle
+          if (Math.random() > 0.6) {
+            const pctChange = (Math.random() * 0.16 - 0.08); // -0.08% to +0.08%
+            const delta = Number(((stock.price * pctChange) / 100).toFixed(2));
             const newPrice = Math.max(1, Number((stock.price + delta).toFixed(2)));
             const isDown = delta < 0;
-            const percentVal = (delta / stock.price) * 100;
-            const percentStr = `${percentVal >= 0 ? "+" : ""}${percentVal.toFixed(2)}%`;
+
+            // calculate new net percent
+            const currentPctNum = parseFloat(stock.percent || "0");
+            const newPctNum = currentPctNum + (pctChange * 0.5);
+            const percentStr = `${newPctNum >= 0 ? "+" : ""}${newPctNum.toFixed(2)}%`;
+
             return {
               ...stock,
               price: newPrice,
@@ -61,9 +114,9 @@ const WatchList = () => {
           return stock;
         });
       });
-    }, 4500);
+    }, 3000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(tickInterval);
   }, []);
 
   const handleAddStock = async (e) => {
@@ -71,7 +124,26 @@ const WatchList = () => {
     if (!newStockSymbol.trim()) return;
 
     const symbol = newStockSymbol.toUpperCase().trim();
-    const price = Number(newStockPrice) || 500.0;
+    let price = Number(newStockPrice);
+    let percent = "+0.00%";
+    let isDown = false;
+
+    // If user left price empty, fetch live market price for that ticker!
+    if (!price || isNaN(price)) {
+      try {
+        const liveRes = await axios.get(`${API_BASE_URL}/api/market/quote/${symbol}`, { timeout: 4500 });
+        if (liveRes.data && liveRes.data.price) {
+          price = liveRes.data.price;
+          percent = liveRes.data.percent || "+0.00%";
+          isDown = liveRes.data.isDown || false;
+        } else {
+          price = 500.0;
+        }
+      } catch (err) {
+        console.warn("Live ticker lookup failed, using default:", err.message);
+        price = 500.0;
+      }
+    }
 
     try {
       const token = localStorage.getItem("token");
@@ -82,18 +154,18 @@ const WatchList = () => {
         { name: symbol, price },
         { withCredentials: true, headers }
       );
-      setWatchlistItems((prev) => [...prev, res.data]);
-      showToast({ title: "Watchlist Updated", message: `Added ${symbol} to watchlist.`, type: "success", duration: 5000 });
+      setWatchlistItems((prev) => [...prev, { ...res.data, percent, isDown }]);
+      showToast({ title: "Stock Added", message: `Added ${symbol} at ₹${price.toFixed(2)} from live market.`, type: "success", duration: 5000 });
     } catch (err) {
       console.warn("Adding locally:", err);
       const newItem = {
         name: symbol,
         price,
-        percent: "+0.00%",
-        isDown: false,
+        percent,
+        isDown,
       };
       setWatchlistItems((prev) => [...prev, newItem]);
-      showToast({ title: "Watchlist Updated", message: `Added ${symbol} to watchlist.`, type: "success", duration: 5000 });
+      showToast({ title: "Stock Added", message: `Added ${symbol} at ₹${price.toFixed(2)}.`, type: "success", duration: 5000 });
     }
 
     setNewStockSymbol("");
@@ -139,17 +211,38 @@ const WatchList = () => {
         </span>
       </div>
 
-      <div style={{ padding: "6px 14px", borderBottom: "1px solid #eee", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: "12px", color: "#888" }}>Watchlist 1</span>
+      <div style={{ padding: "8px 14px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f8fafc" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>Watchlist 1</span>
+          {isLiveStreaming && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "3px",
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                color: "#00a25b",
+                background: "#e6f7ed",
+                padding: "1px 6px",
+                borderRadius: "8px",
+              }}
+            >
+              <FiberManualRecord style={{ fontSize: "8px", color: "#00a25b" }} />
+              LIVE
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => setIsAddingStock(!isAddingStock)}
           style={{
             background: "none",
             border: "none",
-            color: "#4184f3",
+            color: "#387ed1",
             cursor: "pointer",
             fontSize: "12px",
+            fontWeight: 600,
             display: "flex",
             alignItems: "center",
             gap: "2px",
@@ -164,34 +257,43 @@ const WatchList = () => {
           onSubmit={handleAddStock}
           style={{
             padding: "10px 14px",
-            background: "#f9f9f9",
-            borderBottom: "1px solid #eee",
+            background: "#f1f5f9",
+            borderBottom: "1px solid #e2e8f0",
             display: "flex",
             gap: "6px",
+            alignItems: "center",
           }}
         >
           <input
             type="text"
-            placeholder="Symbol (e.g. TATASTEEL)"
+            placeholder="Symbol (e.g. ZOMATO, SBIN, PAYTM)"
             value={newStockSymbol}
             onChange={(e) => setNewStockSymbol(e.target.value)}
-            style={{ flex: 1, padding: "5px 8px", fontSize: "12px", border: "1px solid #ccc", borderRadius: "3px" }}
+            style={{ flex: 1, padding: "6px 10px", fontSize: "12px", border: "1px solid #cbd5e1", borderRadius: "4px", outline: "none" }}
             required
           />
           <input
             type="number"
             step="0.05"
-            placeholder="Price"
+            placeholder="Price (auto if blank)"
             value={newStockPrice}
             onChange={(e) => setNewStockPrice(e.target.value)}
-            style={{ width: "70px", padding: "5px 8px", fontSize: "12px", border: "1px solid #ccc", borderRadius: "3px" }}
+            style={{ width: "110px", padding: "6px 8px", fontSize: "12px", border: "1px solid #cbd5e1", borderRadius: "4px", outline: "none" }}
           />
           <button
             type="submit"
-            className="btn btn-blue"
-            style={{ padding: "4px 10px", fontSize: "12px", margin: 0 }}
+            style={{
+              padding: "6px 14px",
+              fontSize: "12px",
+              fontWeight: 700,
+              backgroundColor: "#387ed1",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
           >
-            Save
+            Add
           </button>
         </form>
       )}
@@ -202,7 +304,7 @@ const WatchList = () => {
             return (
               <WatchListItem
                 stock={stock}
-                key={stock._id || index}
+                key={stock._id || `${stock.name}_${index}`}
                 onDelete={() => handleDeleteStock(stock.name)}
               />
             );
@@ -257,6 +359,22 @@ export default WatchList;
 
 const WatchListItem = ({ stock, onDelete }) => {
   const [showWatchlistActions, setShowWatchlistActions] = useState(false);
+  const [flashColor, setFlashColor] = useState(null);
+  const prevPriceRef = useRef(stock.price);
+
+  useEffect(() => {
+    if (prevPriceRef.current !== undefined && prevPriceRef.current !== stock.price) {
+      if (stock.price > prevPriceRef.current) {
+        setFlashColor("#e6f7ed"); // green flash
+      } else if (stock.price < prevPriceRef.current) {
+        setFlashColor("#fdeeee"); // red flash
+      }
+      const timer = setTimeout(() => setFlashColor(null), 600);
+      prevPriceRef.current = stock.price;
+      return () => clearTimeout(timer);
+    }
+    prevPriceRef.current = stock.price;
+  }, [stock.price]);
 
   const handleMouseEnter = () => {
     setShowWatchlistActions(true);
@@ -267,7 +385,14 @@ const WatchListItem = ({ stock, onDelete }) => {
   };
 
   return (
-    <li onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+    <li
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        backgroundColor: flashColor || "transparent",
+        transition: "background-color 0.4s ease",
+      }}
+    >
       <div className="item">
         <p className={stock.isDown ? "down" : "up"}>{stock.name}</p>
         <div className="itemInfo">
@@ -277,7 +402,7 @@ const WatchListItem = ({ stock, onDelete }) => {
           ) : (
             <KeyboardArrowUp className="up" />
           )}
-          <span className="price">₹{Number(stock.price).toFixed(2)}</span>
+          <span className="price" style={{ fontWeight: 600 }}>₹{Number(stock.price).toFixed(2)}</span>
         </div>
       </div>
       {showWatchlistActions && (
@@ -314,7 +439,7 @@ const WatchListActions = ({ uid, onDelete }) => {
         </Tooltip>
         <Tooltip title="Delete from Watchlist" placement="top" arrow TransitionComponent={Grow}>
           <button className="action" onClick={onDelete}>
-            <DeleteOutline className="icon" style={{ color: "#d9534f" }} />
+            <DeleteOutline className="icon" style={{ color: "#df514c" }} />
           </button>
         </Tooltip>
       </span>

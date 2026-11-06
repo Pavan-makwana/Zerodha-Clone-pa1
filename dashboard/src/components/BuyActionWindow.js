@@ -40,20 +40,29 @@ const BuyActionWindow = ({ uid, initialMode = "BUY" }) => {
         console.warn("Could not fetch margin:", err);
       });
 
-    // Try to get stock price from watchlist
+    // Try to get live real-time stock price from market API, fallback to watchlist
     axios
-      .get(`${API_BASE_URL}/watchlist`, { withCredentials: true, headers })
+      .get(`${API_BASE_URL}/api/market/quote/${uid}`, { timeout: 3500 })
       .then((res) => {
-        if (Array.isArray(res.data)) {
-          const item = res.data.find(
-            (s) => s.name?.toUpperCase() === uid?.toUpperCase()
-          );
-          if (item && item.price) {
-            setStockPrice(item.price);
-          }
+        if (res.data?.price && Number(res.data.price) > 0) {
+          setStockPrice(Number(res.data.price));
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        axios
+          .get(`${API_BASE_URL}/watchlist`, { withCredentials: true, headers })
+          .then((res) => {
+            if (Array.isArray(res.data)) {
+              const item = res.data.find(
+                (s) => s.name?.toUpperCase() === uid?.toUpperCase()
+              );
+              if (item && item.price) {
+                setStockPrice(item.price);
+              }
+            }
+          })
+          .catch(() => {});
+      });
   }, [uid]);
 
   const handleOrderSubmit = async (e) => {

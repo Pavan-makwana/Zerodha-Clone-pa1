@@ -15,6 +15,7 @@ const { UserModel } = require('./model/UserModel');
 const { memoryStore } = require('./utils/memoryStore');
 
 const authRoutes = require('./routes/authRoutes');
+const marketRoutes = require('./routes/marketRoutes');
 const { verifyToken } = require('./middleware/authMiddleware');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
@@ -96,6 +97,7 @@ const defaultPositions = [
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/market', marketRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({
