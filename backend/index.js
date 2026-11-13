@@ -176,6 +176,7 @@ app.get('/allholdings', verifyToken, async (req, res) => {
 // User Isolated Positions
 app.get('/allpositions', verifyToken, async (req, res) => {
   try {
+    let rawPositions = [];
     if (isDbConnected()) {
       let userPositions = await PositionsModel.find({ userId: req.user });
       if (userPositions.length === 0) {
@@ -194,12 +195,231 @@ app.get('/allpositions', verifyToken, async (req, res) => {
         }));
         userPositions = await PositionsModel.insertMany(initial);
       }
-      return res.status(200).json(userPositions);
+      rawPositions = userPositions;
     } else {
-      return res.status(200).json(memoryStore.getPositions(req.user));
+      rawPositions = memoryStore.getPositions(req.user);
     }
+
+    // Enrich positions with live market prices from marketService
+    const { getQuote } = require('./services/marketService');
+    const enriched = await Promise.all(
+      rawPositions.map(async (p) => {
+        try {
+          const live = await getQuote(p.name);
+          const obj = p.toObject ? p.toObject() : { ...p };
+          const livePrice = live.price || obj.price;
+          const avg = obj.avg || livePrice;
+          const netVal = avg > 0 ? (((livePrice - avg) / avg) * 100).toFixed(2) : "0.00";
+          return {
+            ...obj,
+            price: livePrice,
+            day: live.percent || obj.day,
+            net: `${Number(netVal) >= 0 ? "+" : ""}${netVal}%`,
+            isLoss: live.isDown,
+          };
+        } catch (e) {
+          return p;
+        }
+      })
+    );
+
+    return res.status(200).json(enriched);
   } catch (err) {
     return res.status(500).json({ message: err.message || "Failed to fetch positions" });
+  }
+});
+
+// Square Off Single Position (MIS or CNC)
+app.post('/positions/exit', verifyToken, async (req, res) => {
+  try {
+    const { name, product, price } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Stock name is required to square off" });
+    }
+
+    const { getQuote } = require('./services/marketService');
+    const quote = await getQuote(name);
+    const exitPrice = Number(price) || quote.price;
+
+    if (isDbConnected()) {
+      const stockName = name.toUpperCase().trim();
+      const prod = (product || "MIS").toUpperCase();
+      const pos = await PositionsModel.findOne({ userId: req.user, name: stockName, product: prod });
+      if (!pos) {
+        return res.status(404).json({ message: `No active position found for ${stockName}` });
+      }
+
+      const qty = pos.qty;
+      const avg = pos.avg || pos.price;
+      const realizedPL = Math.round(((exitPrice - avg) * qty) * 100) / 100;
+      const margin = prod === "MIS"
+        ? Math.round(((avg * qty) / 5) * 100) / 100
+        : Math.round((avg * qty) * 100) / 100;
+      const credit = Math.round((margin + realizedPL) * 100) / 100;
+
+      await PositionsModel.findByIdAndDelete(pos._id);
+
+      const user = await UserModel.findById(req.user);
+      if (user) {
+        user.funds = Math.max(0, Math.round(((user.funds || 1000000) + credit) * 100) / 100);
+        await user.save();
+      }
+
+      const order = new OrdersModel({
+        userId: req.user,
+        name: stockName,
+        qty,
+        price: exitPrice,
+        mode: "SELL",
+        product: prod,
+        orderType: "MARKET",
+        status: "COMPLETE",
+        realizedPL,
+        createdAt: new Date(),
+      });
+      await order.save();
+
+      return res.status(200).json({
+        message: `Position squared off! Realized P&L: ${realizedPL >= 0 ? "+" : ""}₹${realizedPL.toFixed(2)}`,
+        order,
+        realizedPL,
+        availableMargin: user ? user.funds : undefined,
+      });
+    } else {
+      const result = memoryStore.squareOffPosition(req.user, {
+        name,
+        product,
+        currentPrice: exitPrice,
+      });
+      return res.status(200).json(result);
+    }
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to square off position" });
+  }
+});
+
+// Square Off All Open Positions
+app.post('/positions/exit-all', verifyToken, async (req, res) => {
+  try {
+    const { getQuote } = require('./services/marketService');
+    if (isDbConnected()) {
+      const userPositions = await PositionsModel.find({ userId: req.user });
+      let totalRealized = 0;
+      for (const pos of userPositions) {
+        const quote = await getQuote(pos.name);
+        const exitPrice = quote.price;
+        const avg = pos.avg || pos.price;
+        const realizedPL = Math.round(((exitPrice - avg) * pos.qty) * 100) / 100;
+        const margin = pos.product === "MIS"
+          ? Math.round(((avg * pos.qty) / 5) * 100) / 100
+          : Math.round((avg * pos.qty) * 100) / 100;
+        const credit = Math.round((margin + realizedPL) * 100) / 100;
+
+        await PositionsModel.findByIdAndDelete(pos._id);
+        const user = await UserModel.findById(req.user);
+        if (user) {
+          user.funds = Math.max(0, Math.round(((user.funds || 1000000) + credit) * 100) / 100);
+          await user.save();
+        }
+
+        const order = new OrdersModel({
+          userId: req.user,
+          name: pos.name,
+          qty: pos.qty,
+          price: exitPrice,
+          mode: "SELL",
+          product: pos.product,
+          orderType: "MARKET",
+          status: "COMPLETE",
+          realizedPL,
+          createdAt: new Date(),
+        });
+        await order.save();
+        totalRealized += realizedPL;
+      }
+      return res.status(200).json({
+        message: `All positions squared off! Total P&L: ${totalRealized >= 0 ? "+" : ""}₹${totalRealized.toFixed(2)}`,
+        totalRealized,
+      });
+    } else {
+      const positions = memoryStore.getPositions(req.user);
+      const priceMap = {};
+      await Promise.all(
+        positions.map(async (p) => {
+          try {
+            const q = await getQuote(p.name);
+            priceMap[p.name.toUpperCase()] = q.price;
+          } catch (e) {}
+        })
+      );
+      const result = memoryStore.squareOffAll(req.user, priceMap);
+      return res.status(200).json(result);
+    }
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to square off all positions" });
+  }
+});
+
+// Trade Analytics Endpoint
+app.get('/trade-analytics', verifyToken, async (req, res) => {
+  try {
+    if (isDbConnected()) {
+      const orders = await OrdersModel.find({ userId: req.user });
+      const completedOrders = orders.filter((o) => o.status === "COMPLETE");
+      const buyOrders = completedOrders.filter((o) => o.mode === "BUY");
+      const sellOrders = completedOrders.filter((o) => o.mode === "SELL");
+
+      let grossProfit = 0;
+      let grossLoss = 0;
+      let winCount = 0;
+      let lossCount = 0;
+      let totalTradedVolume = 0;
+
+      completedOrders.forEach((o) => {
+        totalTradedVolume += (o.qty * o.price);
+      });
+
+      sellOrders.forEach((o) => {
+        const pl = o.realizedPL !== undefined ? o.realizedPL : 0;
+        if (pl > 0) {
+          grossProfit += pl;
+          winCount++;
+        } else if (pl < 0) {
+          grossLoss += Math.abs(pl);
+          lossCount++;
+        }
+      });
+
+      const closedTrades = winCount + lossCount;
+      const winRate = closedTrades > 0 ? Math.round((winCount / closedTrades) * 100) : 0;
+      const profitFactor = grossLoss > 0 ? Math.round((grossProfit / grossLoss) * 100) / 100 : (grossProfit > 0 ? 99.9 : 1.0);
+      const netRealizedPL = Math.round((grossProfit - grossLoss) * 100) / 100;
+
+      const user = await UserModel.findById(req.user);
+      const currentFunds = user ? user.funds : 1000000;
+      const capitalGrowth = Math.round(((currentFunds - 1000000) / 1000000) * 10000) / 100;
+
+      return res.status(200).json({
+        totalTrades: completedOrders.length,
+        buyTrades: buyOrders.length,
+        sellTrades: sellOrders.length,
+        closedTrades,
+        winCount,
+        lossCount,
+        winRate,
+        grossProfit: Math.round(grossProfit * 100) / 100,
+        grossLoss: Math.round(grossLoss * 100) / 100,
+        profitFactor,
+        netRealizedPL,
+        totalTradedVolume: Math.round(totalTradedVolume * 100) / 100,
+        currentFunds,
+        capitalGrowth,
+      });
+    } else {
+      return res.status(200).json(memoryStore.getTradeAnalytics(req.user));
+    }
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to fetch trade analytics" });
   }
 });
 

@@ -252,6 +252,8 @@ class MemoryStore {
       ? Math.round((totalCost / 5) * 100) / 100
       : totalCost;
 
+    let orderPayloadRealizedPL = 0;
+
     if (normalizedMode === "BUY") {
       if (user && user.funds < marginRequired) {
         throw new Error(`Insufficient funds. Required: ₹${marginRequired.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`);
@@ -303,10 +305,13 @@ class MemoryStore {
         }
       }
     } else if (normalizedMode === "SELL") {
+      let realizedPL = 0;
       if (normalizedProduct === "MIS") {
         const userPositions = this.positions.get(uid);
         const existing = userPositions.find(p => p.name.toUpperCase() === stockName && p.product === "MIS");
         if (existing) {
+          const avgPrice = existing.avg || existing.price || orderPrice;
+          realizedPL = Math.round(((orderPrice - avgPrice) * orderQty) * 100) / 100;
           existing.qty -= orderQty;
           if (existing.qty <= 0) {
             const idx = userPositions.indexOf(existing);
@@ -314,7 +319,7 @@ class MemoryStore {
           }
         }
         if (user) {
-          user.funds = Math.round((user.funds + marginRequired) * 100) / 100;
+          user.funds = Math.max(0, Math.round((user.funds + marginRequired + realizedPL) * 100) / 100);
         }
       } else {
         const userHoldings = this.holdings.get(uid);
@@ -323,6 +328,8 @@ class MemoryStore {
           const available = existing ? existing.qty : 0;
           throw new Error(`Insufficient stock holdings. Requested to sell: ${orderQty}, Available: ${available}`);
         }
+        const avgPrice = existing.avg || existing.price || orderPrice;
+        realizedPL = Math.round(((orderPrice - avgPrice) * orderQty) * 100) / 100;
         existing.qty -= orderQty;
         if (existing.qty === 0) {
           const idx = userHoldings.indexOf(existing);
@@ -332,6 +339,8 @@ class MemoryStore {
           user.funds = Math.round((user.funds + totalCost) * 100) / 100;
         }
       }
+
+      orderPayloadRealizedPL = realizedPL;
     }
 
     const order = {
@@ -344,6 +353,7 @@ class MemoryStore {
       product: normalizedProduct,
       orderType: orderType || "MARKET",
       status: "COMPLETE",
+      realizedPL: orderPayloadRealizedPL,
       createdAt: new Date(),
     };
     this.orders.get(uid).push(order);
@@ -352,6 +362,140 @@ class MemoryStore {
       order,
       availableMargin: user ? user.funds : undefined,
       marginDeducted: normalizedMode === "BUY" ? marginRequired : 0,
+    };
+  }
+
+  squareOffPosition(userId, { name, product, currentPrice }) {
+    const uid = String(userId);
+    this.initUserData(uid);
+    const stockName = name.toUpperCase().trim();
+    const prod = (product || "MIS").toUpperCase();
+    const userPositions = this.positions.get(uid);
+    const existing = userPositions.find(p => p.name.toUpperCase() === stockName && p.product === prod);
+    if (!existing) {
+      throw new Error(`No active position found for ${stockName} (${prod})`);
+    }
+
+    const qty = existing.qty;
+    const avg = existing.avg || existing.price;
+    const exitPrice = Number(currentPrice) || existing.price || avg;
+    const realizedPL = Math.round(((exitPrice - avg) * qty) * 100) / 100;
+    const originalMargin = prod === "MIS"
+      ? Math.round(((avg * qty) / 5) * 100) / 100
+      : Math.round((avg * qty) * 100) / 100;
+    const netCredit = Math.round((originalMargin + realizedPL) * 100) / 100;
+
+    const idx = userPositions.indexOf(existing);
+    userPositions.splice(idx, 1);
+
+    const user = this.findUserById(uid);
+    if (user) {
+      user.funds = Math.max(0, Math.round((user.funds + netCredit) * 100) / 100);
+    }
+
+    const order = {
+      _id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId: uid,
+      name: stockName,
+      qty,
+      price: exitPrice,
+      mode: "SELL",
+      product: prod,
+      orderType: "MARKET",
+      status: "COMPLETE",
+      realizedPL,
+      createdAt: new Date(),
+    };
+    this.orders.get(uid).push(order);
+
+    return {
+      message: `Squared off ${qty} shares of ${stockName} at ₹${exitPrice.toFixed(2)}. P&L: ${realizedPL >= 0 ? "+" : ""}₹${realizedPL.toFixed(2)}`,
+      order,
+      realizedPL,
+      availableMargin: user ? user.funds : undefined,
+    };
+  }
+
+  squareOffAll(userId, priceMap = {}) {
+    const uid = String(userId);
+    this.initUserData(uid);
+    const userPositions = this.positions.get(uid).slice();
+    const results = [];
+    let totalRealized = 0;
+
+    for (const pos of userPositions) {
+      const livePrice = priceMap[pos.name.toUpperCase()] || pos.price;
+      const res = this.squareOffPosition(uid, {
+        name: pos.name,
+        product: pos.product,
+        currentPrice: livePrice,
+      });
+      results.push(res);
+      totalRealized += res.realizedPL;
+    }
+
+    const user = this.findUserById(uid);
+    return {
+      message: `Squared off ${results.length} positions. Total P&L: ${totalRealized >= 0 ? "+" : ""}₹${totalRealized.toFixed(2)}`,
+      results,
+      totalRealized: Math.round(totalRealized * 100) / 100,
+      availableMargin: user ? user.funds : undefined,
+    };
+  }
+
+  getTradeAnalytics(userId) {
+    const uid = String(userId);
+    this.initUserData(uid);
+    const orders = this.orders.get(uid) || [];
+    const completedOrders = orders.filter(o => o.status === "COMPLETE");
+    const buyOrders = completedOrders.filter(o => o.mode === "BUY");
+    const sellOrders = completedOrders.filter(o => o.mode === "SELL");
+
+    let grossProfit = 0;
+    let grossLoss = 0;
+    let winCount = 0;
+    let lossCount = 0;
+    let totalTradedVolume = 0;
+
+    completedOrders.forEach(o => {
+      totalTradedVolume += (o.qty * o.price);
+    });
+
+    sellOrders.forEach(o => {
+      const pl = o.realizedPL !== undefined ? o.realizedPL : 0;
+      if (pl > 0) {
+        grossProfit += pl;
+        winCount++;
+      } else if (pl < 0) {
+        grossLoss += Math.abs(pl);
+        lossCount++;
+      }
+    });
+
+    const closedTrades = winCount + lossCount;
+    const winRate = closedTrades > 0 ? Math.round((winCount / closedTrades) * 100) : 0;
+    const profitFactor = grossLoss > 0 ? Math.round((grossProfit / grossLoss) * 100) / 100 : (grossProfit > 0 ? 99.9 : 1.0);
+    const netRealizedPL = Math.round((grossProfit - grossLoss) * 100) / 100;
+
+    const user = this.findUserById(uid);
+    const currentFunds = user ? user.funds : 1000000;
+    const capitalGrowth = Math.round(((currentFunds - 1000000) / 1000000) * 10000) / 100;
+
+    return {
+      totalTrades: completedOrders.length,
+      buyTrades: buyOrders.length,
+      sellTrades: sellOrders.length,
+      closedTrades,
+      winCount,
+      lossCount,
+      winRate,
+      grossProfit: Math.round(grossProfit * 100) / 100,
+      grossLoss: Math.round(grossLoss * 100) / 100,
+      profitFactor,
+      netRealizedPL,
+      totalTradedVolume: Math.round(totalTradedVolume * 100) / 100,
+      currentFunds,
+      capitalGrowth,
     };
   }
 }

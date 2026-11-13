@@ -28,7 +28,30 @@ const TopBar = () => {
     }
   };
 
-  // Initial fetch and 25s polling from real market API
+  const [currentTime, setCurrentTime] = useState(
+    new Date().toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    })
+  );
+
+  useEffect(() => {
+    const clockInterval = setInterval(() => {
+      setCurrentTime(
+        new Date().toLocaleTimeString("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+      );
+    }, 1000);
+    return () => clearInterval(clockInterval);
+  }, []);
   useEffect(() => {
     fetchLiveIndices();
     const pollInterval = setInterval(fetchLiveIndices, 25000);
@@ -98,9 +121,9 @@ const TopBar = () => {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: "4px",
+              gap: "5px",
               marginLeft: "14px",
-              padding: "2px 7px",
+              padding: "2px 8px",
               background: "#e6f7ed",
               color: "#00a25b",
               borderRadius: "10px",
@@ -110,9 +133,45 @@ const TopBar = () => {
             }}
           >
             <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#00a25b" }}></span>
-            LIVE
+            NSE LIVE
           </span>
         )}
+
+        <div
+          style={{
+            display: "none",
+            alignItems: "center",
+            gap: "8px",
+            marginLeft: "18px",
+            fontSize: "0.74rem",
+            color: "#64748b",
+            fontFamily: "monospace",
+            fontWeight: 600,
+          }}
+          className="d-none d-lg-flex"
+        >
+          <span style={{ color: "#94a3b8" }}>IST:</span>
+          <span>{currentTime}</span>
+        </div>
+
+        <div
+          style={{
+            display: "none",
+            alignItems: "center",
+            gap: "6px",
+            marginLeft: "14px",
+            padding: "2px 9px",
+            background: "#eff6ff",
+            color: "#2563eb",
+            borderRadius: "12px",
+            fontSize: "0.7rem",
+            fontWeight: 700,
+            border: "1px solid #bfdbfe",
+          }}
+          className="d-none d-xl-flex"
+        >
+          <span>Paper Trading ₹10L</span>
+        </div>
       </div>
 
       <Menu />

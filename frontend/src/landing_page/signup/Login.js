@@ -20,9 +20,11 @@ const Login = () => {
   useEffect(() => {
     try {
       const stored = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      if (stored && token) {
-        setLoggedInUser(JSON.parse(stored));
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && (parsed.name || parsed.email)) {
+          setLoggedInUser(parsed);
+        }
       }
     } catch (e) {
       console.error(e);
