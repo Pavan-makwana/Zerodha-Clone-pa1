@@ -4,6 +4,11 @@ const assert = require('node:assert');
 const jwt = require('jsonwebtoken');
 const { memoryStore } = require('../utils/memoryStore');
 
+test('Server Startup & Express App Exports cleanly', () => {
+  const app = require('../index.js');
+  assert.ok(app, 'Express app must be exported without syntax or runtime errors');
+});
+
 test('JWT Token Generation and Verification', () => {
   const secret = 'test-secret-key-12345';
   const userId = 'user_67890_abc';

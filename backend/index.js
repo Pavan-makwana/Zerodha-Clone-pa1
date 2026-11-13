@@ -772,59 +772,6 @@ app.post('/newOrder', verifyToken, async (req, res) => {
     return res.status(500).json({ message: err.message || "Failed to place order" });
   }
 });
-        await existingHolding.save();
-      } else {
-        const newHolding = new HoldingsModel({
-          userId: req.user,
-          name,
-          qty: orderQty,
-          avg: orderPrice,
-          price: orderPrice,
-          net: "+0.00%",
-          day: "+0.00%",
-        });
-        await newHolding.save();
-      }
-    } else if (normalizedMode === "SELL") {
-      const existingHolding = await HoldingsModel.findOne({ userId: req.user, name });
-      if (!existingHolding || existingHolding.qty < orderQty) {
-        return res.status(400).json({
-          message: `Insufficient stock holdings to sell. Requested: ${orderQty}, Available: ${existingHolding ? existingHolding.qty : 0}`
-        });
-      }
-
-      existingHolding.qty -= orderQty;
-      if (existingHolding.qty === 0) {
-        await HoldingsModel.deleteOne({ _id: existingHolding._id });
-      } else {
-        await existingHolding.save();
-      }
-
-      if (user) {
-        user.funds = (user.funds || 0) + totalCost;
-        await user.save();
-      }
-    }
-
-    const newOrder = new OrdersModel({
-      userId: req.user,
-      name,
-      qty: orderQty,
-      price: orderPrice,
-      mode: normalizedMode,
-      status: "COMPLETE",
-    });
-    await newOrder.save();
-
-    return res.status(201).json({
-      message: `${normalizedMode} order placed successfully!`,
-      order: newOrder,
-      availableMargin: user ? user.funds : undefined,
-    });
-  } catch (err) {
-    return res.status(500).json({ message: err.message || "Failed to place order" });
-  }
-});
 
 // Centralized error handler
 app.use((err, req, res, next) => {
