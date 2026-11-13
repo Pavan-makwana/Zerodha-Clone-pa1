@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { getIndices, getQuote, getMultipleQuotes, getHistory, searchStocks } = require('../services/marketService');
+const { getScreenerStocks } = require('../services/screenerService');
 
 // Default watchlist tickers if none requested
 const DEFAULT_SYMBOLS = [
@@ -90,6 +91,21 @@ router.get('/search', async (req, res) => {
   } catch (err) {
     console.error("Error searching stocks:", err.message);
     res.status(500).json({ message: "Stock search failed", error: err.message });
+  }
+});
+
+/**
+ * GET /api/market/screener?sector=&marketCap=&filter=&sort=&search=
+ * Real-time multi-metric stock screener endpoint
+ */
+router.get('/screener', async (req, res) => {
+  try {
+    const { sector, marketCap, filter, sort, search } = req.query;
+    const stocks = await getScreenerStocks({ sector, marketCap, filter, sort, search });
+    res.status(200).json(stocks);
+  } catch (err) {
+    console.error("Error screening stocks:", err.message);
+    res.status(500).json({ message: "Stock screener failed", error: err.message });
   }
 });
 

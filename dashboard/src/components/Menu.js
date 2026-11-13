@@ -104,7 +104,9 @@ const Menu = () => {
     { label: "Orders", to: "/orders" },
     { label: "Holdings", to: "/holdings" },
     { label: "Positions", to: "/positions" },
+    { label: "Screener", to: "/screener" },
     { label: "Funds", to: "/funds" },
+    { label: "Learn", to: "/learn" },
     { label: "Apps", to: "/apps" },
   ];
 

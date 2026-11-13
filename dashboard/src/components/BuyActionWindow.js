@@ -21,7 +21,8 @@ const BuyActionWindow = ({ uid, initialMode = "BUY" }) => {
   const { closeBuyWindow, showToast } = useContext(GeneralContext);
 
   const isSell = orderMode === "SELL";
-  const totalCost = Number(stockQuantity) * Number(stockPrice);
+  const rawTotal = Number(stockQuantity) * Number(stockPrice);
+  const totalCost = productType === "MIS" ? Math.round((rawTotal / 5) * 100) / 100 : rawTotal;
   const hasInsufficientFunds = !isSell && totalCost > availableMargin;
 
   // Fetch stock current price and user funds on window open
@@ -297,6 +298,11 @@ const BuyActionWindow = ({ uid, initialMode = "BUY" }) => {
               <span className="label">Margin required:</span>
               <strong className={`value ${hasInsufficientFunds ? "insufficient" : ""}`}>
                 ₹{totalCost.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {productType === "MIS" && (
+                  <span style={{ fontSize: "11px", color: "#387ed1", marginLeft: "4px", fontWeight: 700 }}>
+                    (5x Intraday Leverage)
+                  </span>
+                )}
               </strong>
             </div>
             <div className="margin-item">

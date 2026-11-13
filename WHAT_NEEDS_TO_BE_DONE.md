@@ -279,4 +279,16 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Connected LiveChartModal to real-time quote refresh every 8 seconds, synchronizing latest candle close to live Google Finance price
    ├── [x] Added 'LIVE STREAM • IST' badge to chart modal for full timing transparency
    └── [x] Zero-warning production build and 12/12 test pass rate
+
+[Phase 13: Real-Time Paper Trading, Stock Screener & Step-by-Step Training Suite] - COMPLETED ✅
+   ├── [x] Upgraded virtual starter money to ₹10,00,000 INR (10 Lakhs) across memoryStore.js and database models
+   ├── [x] Implemented POST /funds/reset endpoint with instant 1-click virtual capital reset button in Funds.js and LearnTradingGuide.js
+   ├── [x] Built backend real-time Stock Screener service (backend/services/screenerService.js) supporting multi-metric filtering (Sectors, Large/Mid/Small cap, Top Gainers, Top Losers, Near 52W High, Volume) and 12s cache
+   ├── [x] Added GET /api/market/screener endpoint in backend/routes/marketRoutes.js
+   ├── [x] Created interactive Stock Screener UI (dashboard/src/components/Screener.js & Screener.css) with live prices, filter pills, search, 52W range bars, and 1-click B/S/Chart modal actions
+   ├── [x] Built Kite Paper Trading Academy (dashboard/src/components/LearnTradingGuide.js) featuring a 5-step interactive training curriculum with progress tracking and direct trading actions
+   ├── [x] Integrated 5x Intraday MIS leverage calculation in backend/utils/memoryStore.js and BuyActionWindow.js
+   ├── [x] Enhanced Orders.js with live trade execution log displaying execution time in IST, product badges (CNC vs MIS 5x), and live status
+   ├── [x] Added Screener and Learn tabs into main top navigation (Menu.js and Dashboard.js)
+   └── [x] 15/15 backend automated tests passing and zero-warning production builds
 ```

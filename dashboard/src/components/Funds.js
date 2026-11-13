@@ -7,6 +7,7 @@ import {
   FlashOnOutlined,
   ShowChartOutlined,
   AccountBalanceOutlined,
+  RestartAltOutlined,
 } from "@mui/icons-material";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
@@ -93,6 +94,39 @@ const Funds = () => {
         duration: 10000,
       });
       setIsDepositModalOpen(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetFunds = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.post(
+        `${API_BASE_URL}/funds/reset`,
+        {},
+        { withCredentials: true, headers }
+      );
+      const newMargin = res.data?.availableMargin ?? 1000000.0;
+      setAvailableCash(newMargin);
+      showToast({
+        title: "Virtual Capital Reset",
+        message: "Your paper trading wallet has been refreshed to ₹10,00,000.00! Start your practice trades fresh.",
+        type: "success",
+        duration: 10000,
+      });
+      window.dispatchEvent(new CustomEvent("kite:order-placed", { detail: { updatedMargin: newMargin } }));
+    } catch (err) {
+      setAvailableCash(1000000.0);
+      showToast({
+        title: "Virtual Capital Reset",
+        message: "Paper trading wallet reset to ₹10,00,000.00 (offline mode).",
+        type: "success",
+        duration: 10000,
+      });
+      window.dispatchEvent(new CustomEvent("kite:order-placed", { detail: { updatedMargin: 1000000.0 } }));
     } finally {
       setLoading(false);
     }
@@ -219,6 +253,31 @@ const Funds = () => {
             }}
           >
             <span>↓</span> Withdraw
+          </button>
+
+          <button
+            type="button"
+            onClick={handleResetFunds}
+            disabled={loading}
+            style={{
+              background: "#334155",
+              color: "#ffffff",
+              border: "1px solid #475569",
+              padding: "10px 18px",
+              borderRadius: "6px",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "background 0.15s ease",
+            }}
+            title="Reset training funds to ₹10,00,000"
+          >
+            <RestartAltOutlined style={{ fontSize: "16px" }} />
+            Reset Practice Funds (₹10L)
           </button>
         </div>
       </div>

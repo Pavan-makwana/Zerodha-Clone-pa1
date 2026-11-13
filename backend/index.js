@@ -308,15 +308,32 @@ app.get('/funds', verifyToken, async (req, res) => {
     if (isDbConnected()) {
       const user = await UserModel.findById(req.user);
       if (!user) return res.status(404).json({ message: "User not found" });
-      const availableMargin = user.funds !== undefined ? user.funds : 100000.0;
+      const availableMargin = user.funds !== undefined ? user.funds : 1000000.0;
       return res.status(200).json({ availableMargin, usedMargin: 0.0 });
     } else {
       const user = memoryStore.findUserById(req.user);
-      const availableMargin = user && user.funds !== undefined ? user.funds : 100000.0;
+      const availableMargin = user && user.funds !== undefined ? user.funds : 1000000.0;
       return res.status(200).json({ availableMargin, usedMargin: 0.0 });
     }
   } catch (err) {
     return res.status(500).json({ message: err.message || "Failed to fetch funds" });
+  }
+});
+
+app.post('/funds/reset', verifyToken, async (req, res) => {
+  try {
+    if (isDbConnected()) {
+      const user = await UserModel.findById(req.user);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      user.funds = 1000000.0;
+      await user.save();
+      return res.status(200).json({ message: "Virtual training capital reset to ₹10,00,000", availableMargin: 1000000.0 });
+    } else {
+      const newBal = memoryStore.resetVirtualFunds(req.user);
+      return res.status(200).json({ message: "Virtual training capital reset to ₹10,00,000", availableMargin: newBal });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to reset virtual funds" });
   }
 });
 
@@ -374,7 +391,7 @@ app.post('/funds/withdraw', verifyToken, async (req, res) => {
 // Order Execution with Balance & Ownership Validation
 app.post('/newOrder', verifyToken, async (req, res) => {
   try {
-    const { name, qty, price, mode } = req.body;
+    const { name, qty, price, mode, product, orderType } = req.body;
 
     if (!name || qty === undefined || price === undefined || !mode) {
       return res.status(400).json({ message: "Name, qty, price, and mode are required" });
@@ -395,6 +412,9 @@ app.post('/newOrder', verifyToken, async (req, res) => {
       return res.status(400).json({ message: "Mode must be either BUY or SELL" });
     }
 
+    const normalizedProduct = (product || "CNC").toUpperCase();
+    const normalizedOrderType = (orderType || "MARKET").toUpperCase();
+
     if (!isDbConnected()) {
       const result = memoryStore.executeOrder({
         userId: req.user,
@@ -402,6 +422,8 @@ app.post('/newOrder', verifyToken, async (req, res) => {
         qty: orderQty,
         price: orderPrice,
         mode: normalizedMode,
+        product: normalizedProduct,
+        orderType: normalizedOrderType,
       });
       return res.status(201).json({
         message: `${normalizedMode} order placed successfully!`,
@@ -411,26 +433,125 @@ app.post('/newOrder', verifyToken, async (req, res) => {
     }
 
     const totalCost = orderPrice * orderQty;
+    const marginRequired = normalizedProduct === "MIS"
+      ? Math.round((totalCost / 5) * 100) / 100
+      : totalCost;
     const user = await UserModel.findById(req.user);
 
     if (normalizedMode === "BUY") {
-      if (user && user.funds < totalCost) {
+      if (user && user.funds < marginRequired) {
         return res.status(400).json({
-          message: `Insufficient funds. Required: ₹${totalCost.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`
+          message: `Insufficient funds. Required: ₹${marginRequired.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`
         });
       }
 
       if (user) {
-        user.funds -= totalCost;
+        user.funds -= marginRequired;
         await user.save();
       }
 
-      const existingHolding = await HoldingsModel.findOne({ userId: req.user, name });
-      if (existingHolding) {
-        const totalPreviousCost = existingHolding.qty * existingHolding.avg;
-        existingHolding.qty += orderQty;
-        existingHolding.avg = (totalPreviousCost + totalCost) / existingHolding.qty;
-        existingHolding.price = orderPrice;
+      if (normalizedProduct === "MIS") {
+        const existingPos = await PositionsModel.findOne({ userId: req.user, name, product: "MIS" });
+        if (existingPos) {
+          const totalCostPrev = existingPos.qty * existingPos.price;
+          existingPos.qty += orderQty;
+          existingPos.price = (totalCostPrev + totalCost) / existingPos.qty;
+          await existingPos.save();
+        } else {
+          const newPos = new PositionsModel({
+            userId: req.user,
+            product: "MIS",
+            name,
+            qty: orderQty,
+            avg: orderPrice,
+            price: orderPrice,
+            net: "+0.00%",
+            day: "+0.00%",
+            isLoss: false,
+          });
+          await newPos.save();
+        }
+      } else {
+        const existingHolding = await HoldingsModel.findOne({ userId: req.user, name });
+        if (existingHolding) {
+          const totalPreviousCost = existingHolding.qty * existingHolding.avg;
+          existingHolding.qty += orderQty;
+          existingHolding.avg = (totalPreviousCost + totalCost) / existingHolding.qty;
+          existingHolding.price = orderPrice;
+          await existingHolding.save();
+        } else {
+          const newHolding = new HoldingsModel({
+            userId: req.user,
+            name,
+            qty: orderQty,
+            avg: orderPrice,
+            price: orderPrice,
+            net: "+0.00%",
+            day: "+0.00%",
+          });
+          await newHolding.save();
+        }
+      }
+    } else if (normalizedMode === "SELL") {
+      if (normalizedProduct === "MIS") {
+        const existingPos = await PositionsModel.findOne({ userId: req.user, name, product: "MIS" });
+        if (existingPos) {
+          existingPos.qty -= orderQty;
+          if (existingPos.qty <= 0) {
+            await PositionsModel.findByIdAndDelete(existingPos._id);
+          } else {
+            await existingPos.save();
+          }
+        }
+        if (user) {
+          user.funds += marginRequired;
+          await user.save();
+        }
+      } else {
+        const existingHolding = await HoldingsModel.findOne({ userId: req.user, name });
+        if (!existingHolding || existingHolding.qty < orderQty) {
+          const available = existingHolding ? existingHolding.qty : 0;
+          return res.status(400).json({
+            message: `Insufficient stock holdings. Requested to sell: ${orderQty}, Available: ${available}`
+          });
+        }
+
+        existingHolding.qty -= orderQty;
+        if (existingHolding.qty === 0) {
+          await HoldingsModel.findByIdAndDelete(existingHolding._id);
+        } else {
+          await existingHolding.save();
+        }
+
+        if (user) {
+          user.funds += totalCost;
+          await user.save();
+        }
+      }
+    }
+
+    const newOrder = new OrdersModel({
+      userId: req.user,
+      name,
+      qty: orderQty,
+      price: orderPrice,
+      mode: normalizedMode,
+      product: normalizedProduct,
+      orderType: normalizedOrderType,
+      status: "COMPLETE",
+      createdAt: new Date(),
+    });
+    await newOrder.save();
+
+    return res.status(201).json({
+      message: `${normalizedMode} order placed successfully!`,
+      order: newOrder,
+      availableMargin: user ? user.funds : undefined,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message || "Failed to place order" });
+  }
+});
         await existingHolding.save();
       } else {
         const newHolding = new HoldingsModel({

@@ -59,7 +59,7 @@ class MemoryStore {
       name,
       email: email.toLowerCase(),
       password: passwordHash,
-      funds: 100000.00,
+      funds: 1000000.00,
       createdAt: new Date(),
     };
     this.users.set(id, user);
@@ -68,6 +68,16 @@ class MemoryStore {
   }
 
   initUserData(userId) {
+    if (!this.users.has(userId)) {
+      this.users.set(userId, {
+        _id: userId,
+        id: userId,
+        name: "Paper Trader",
+        email: `${userId}@zerodha.com`,
+        funds: 1000000.00,
+        createdAt: new Date(),
+      });
+    }
     if (!this.holdings.has(userId)) {
       this.holdings.set(userId, defaultHoldings.map((h, i) => ({
         _id: `hld_${userId}_${i}`,
@@ -126,7 +136,7 @@ class MemoryStore {
       name,
       email: email.toLowerCase().trim(),
       password: passwordHash,
-      funds: 100000.00,
+      funds: 1000000.00,
       createdAt: new Date(),
     };
     this.users.set(id, user);
@@ -190,70 +200,149 @@ class MemoryStore {
   addFunds(userId, amount) {
     const user = this.findUserById(userId);
     if (!user) return null;
-    user.funds = Math.round(((user.funds || 100000) + Number(amount)) * 100) / 100;
+    user.funds = Math.round(((user.funds || 1000000) + Number(amount)) * 100) / 100;
     return user.funds;
   }
 
-  executeOrder({ userId, name, qty, price, mode }) {
+  resetVirtualFunds(userId) {
     const uid = String(userId);
     this.initUserData(uid);
-    const user = this.findUserById(uid);
+    let user = this.findUserById(uid);
+    if (!user) {
+      user = {
+        _id: uid,
+        id: uid,
+        name: "Paper Trader",
+        email: `${uid}@zerodha.com`,
+        funds: 1000000.00,
+        createdAt: new Date(),
+      };
+      this.users.set(uid, user);
+    } else {
+      user.funds = 1000000.00;
+    }
+    return user.funds;
+  }
+
+  executeOrder({ userId, name, qty, price, mode, product = "CNC", orderType = "MARKET" }) {
+    const uid = String(userId);
+    this.initUserData(uid);
+    let user = this.findUserById(uid);
+    if (!user) {
+      user = {
+        _id: uid,
+        id: uid,
+        name: "Paper Trader",
+        email: `${uid}@zerodha.com`,
+        funds: 1000000.00,
+        createdAt: new Date(),
+      };
+      this.users.set(uid, user);
+    }
+
     const stockName = name.toUpperCase().trim();
     const orderQty = Number(qty);
     const orderPrice = Number(price);
     const totalCost = orderQty * orderPrice;
     const normalizedMode = mode.toUpperCase();
+    const normalizedProduct = (product || "CNC").toUpperCase();
+
+    // MIS (Intraday) has 5x leverage -> 1/5th margin required
+    const marginRequired = normalizedProduct === "MIS"
+      ? Math.round((totalCost / 5) * 100) / 100
+      : totalCost;
 
     if (normalizedMode === "BUY") {
-      if (user && user.funds < totalCost) {
-        throw new Error(`Insufficient funds. Required: ₹${totalCost.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`);
+      if (user && user.funds < marginRequired) {
+        throw new Error(`Insufficient funds. Required: ₹${marginRequired.toFixed(2)}, Available: ₹${user.funds.toFixed(2)}`);
       }
       if (user) {
-        user.funds = Math.round((user.funds - totalCost) * 100) / 100;
+        user.funds = Math.round((user.funds - marginRequired) * 100) / 100;
       }
-      const userHoldings = this.holdings.get(uid);
-      const existing = userHoldings.find(h => h.name.toUpperCase() === stockName);
-      if (existing) {
-        const totalPreviousCost = existing.qty * existing.avg;
-        existing.qty += orderQty;
-        existing.avg = Math.round(((totalPreviousCost + totalCost) / existing.qty) * 100) / 100;
-        existing.price = orderPrice;
+
+      if (normalizedProduct === "MIS") {
+        const userPositions = this.positions.get(uid);
+        const existing = userPositions.find(p => p.name.toUpperCase() === stockName && p.product === "MIS");
+        if (existing) {
+          const totalCostPrev = existing.qty * existing.price;
+          existing.qty += orderQty;
+          existing.price = Math.round(((totalCostPrev + totalCost) / existing.qty) * 100) / 100;
+        } else {
+          userPositions.push({
+            _id: `pos_${Date.now()}`,
+            userId: uid,
+            product: "MIS",
+            name: stockName,
+            qty: orderQty,
+            avg: orderPrice,
+            price: orderPrice,
+            net: "+0.00%",
+            day: "+0.00%",
+            isLoss: false,
+          });
+        }
       } else {
-        userHoldings.push({
-          _id: `hld_${Date.now()}`,
-          userId: uid,
-          name: stockName,
-          qty: orderQty,
-          avg: orderPrice,
-          price: orderPrice,
-          net: "+0.00%",
-          day: "+0.00%",
-        });
+        const userHoldings = this.holdings.get(uid);
+        const existing = userHoldings.find(h => h.name.toUpperCase() === stockName);
+        if (existing) {
+          const totalPreviousCost = existing.qty * existing.avg;
+          existing.qty += orderQty;
+          existing.avg = Math.round(((totalPreviousCost + totalCost) / existing.qty) * 100) / 100;
+          existing.price = orderPrice;
+        } else {
+          userHoldings.push({
+            _id: `hld_${Date.now()}`,
+            userId: uid,
+            name: stockName,
+            qty: orderQty,
+            avg: orderPrice,
+            price: orderPrice,
+            net: "+0.00%",
+            day: "+0.00%",
+          });
+        }
       }
     } else if (normalizedMode === "SELL") {
-      const userHoldings = this.holdings.get(uid);
-      const existing = userHoldings.find(h => h.name.toUpperCase() === stockName);
-      if (!existing || existing.qty < orderQty) {
-        const available = existing ? existing.qty : 0;
-        throw new Error(`Insufficient stock holdings. Requested to sell: ${orderQty}, Available: ${available}`);
-      }
-      existing.qty -= orderQty;
-      if (existing.qty === 0) {
-        const idx = userHoldings.indexOf(existing);
-        userHoldings.splice(idx, 1);
-      }
-      if (user) {
-        user.funds = Math.round((user.funds + totalCost) * 100) / 100;
+      if (normalizedProduct === "MIS") {
+        const userPositions = this.positions.get(uid);
+        const existing = userPositions.find(p => p.name.toUpperCase() === stockName && p.product === "MIS");
+        if (existing) {
+          existing.qty -= orderQty;
+          if (existing.qty <= 0) {
+            const idx = userPositions.indexOf(existing);
+            userPositions.splice(idx, 1);
+          }
+        }
+        if (user) {
+          user.funds = Math.round((user.funds + marginRequired) * 100) / 100;
+        }
+      } else {
+        const userHoldings = this.holdings.get(uid);
+        const existing = userHoldings.find(h => h.name.toUpperCase() === stockName);
+        if (!existing || existing.qty < orderQty) {
+          const available = existing ? existing.qty : 0;
+          throw new Error(`Insufficient stock holdings. Requested to sell: ${orderQty}, Available: ${available}`);
+        }
+        existing.qty -= orderQty;
+        if (existing.qty === 0) {
+          const idx = userHoldings.indexOf(existing);
+          userHoldings.splice(idx, 1);
+        }
+        if (user) {
+          user.funds = Math.round((user.funds + totalCost) * 100) / 100;
+        }
       }
     }
 
     const order = {
-      _id: `ord_${Date.now()}`,
+      _id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       userId: uid,
       name: stockName,
       qty: orderQty,
       price: orderPrice,
       mode: normalizedMode,
+      product: normalizedProduct,
+      orderType: orderType || "MARKET",
       status: "COMPLETE",
       createdAt: new Date(),
     };
@@ -262,6 +351,7 @@ class MemoryStore {
     return {
       order,
       availableMargin: user ? user.funds : undefined,
+      marginDeducted: normalizedMode === "BUY" ? marginRequired : 0,
     };
   }
 }

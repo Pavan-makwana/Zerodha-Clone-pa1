@@ -1,9 +1,14 @@
 // dashboard/src/components/Summary.js
 
 import React, { useState, useEffect, useContext } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import GeneralContext from "./GeneralContext";
-import { CandlestickChartOutlined } from "@mui/icons-material";
+import {
+  CandlestickChartOutlined,
+  SchoolOutlined,
+  FilterListOutlined,
+} from "@mui/icons-material";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -282,6 +287,102 @@ const Summary = () => {
             <span>Current: <strong style={{ color: "#1e293b" }}>₹{currentValue.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></span>
             <span>Invested: <strong style={{ color: "#1e293b" }}>₹{totalInvestment.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></span>
           </div>
+        </div>
+      </div>
+
+      {/* Real-Time Paper Trading & Learning Academy Banner */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+          border: "1px solid #cbd5e1",
+          borderRadius: "10px",
+          padding: "18px 24px",
+          marginBottom: "24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "14px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div
+            style={{
+              width: "44px",
+              height: "44px",
+              borderRadius: "10px",
+              background: "#eff6ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#387ed1",
+            }}
+          >
+            <SchoolOutlined style={{ fontSize: "24px" }} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "3px" }}>
+              <h4 style={{ margin: 0, fontSize: "1.05rem", fontWeight: 700, color: "#0f172a" }}>
+                Paper Trading Training Platform
+              </h4>
+              <span
+                style={{
+                  background: "#e6f7ed",
+                  color: "#00a25b",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  padding: "2px 8px",
+                  borderRadius: "10px",
+                }}
+              >
+                ₹10,00,000 Capital Active
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: "0.83rem", color: "#64748b" }}>
+              Learn Indian market trading step-by-step with zero risk, live real-time price feeds, and stock screening.
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          <Link
+            to="/screener"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "7px 14px",
+              background: "#ffffff",
+              border: "1px solid #cbd5e1",
+              borderRadius: "6px",
+              color: "#334155",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            <FilterListOutlined style={{ fontSize: "16px", color: "#387ed1" }} />
+            Stock Screener
+          </Link>
+          <Link
+            to="/learn"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "7px 16px",
+              background: "#387ed1",
+              border: "none",
+              borderRadius: "6px",
+              color: "#ffffff",
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              textDecoration: "none",
+              boxShadow: "0 2px 6px rgba(56, 126, 209, 0.25)",
+            }}
+          >
+            Learn Step-by-Step &rarr;
+          </Link>
         </div>
       </div>
 

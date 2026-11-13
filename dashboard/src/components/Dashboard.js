@@ -7,6 +7,8 @@ import Funds from "./Funds";
 import Holdings from "./Holdings";
 import Orders from "./Orders";
 import Positions from "./Positions";
+import Screener from "./Screener";
+import LearnTradingGuide from "./LearnTradingGuide";
 import Summary from "./Summary";
 import WatchList from "./WatchList";
 import { GeneralContextProvider } from "./GeneralContext";
@@ -22,7 +24,9 @@ const Dashboard = () => {
             <Route path="/orders" element={<Orders />} />
             <Route path="/holdings" element={<Holdings />} />
             <Route path="/positions" element={<Positions />} />
+            <Route path="/screener" element={<Screener />} />
             <Route path="/funds" element={<Funds />} />
+            <Route path="/learn" element={<LearnTradingGuide />} />
             <Route path="/apps" element={<Apps />} />
           </Routes>
         </div>
