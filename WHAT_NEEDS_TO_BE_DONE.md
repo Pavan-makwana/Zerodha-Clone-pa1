@@ -291,4 +291,15 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Enhanced Orders.js with live trade execution log displaying execution time in IST, product badges (CNC vs MIS 5x), and live status
    ├── [x] Added Screener and Learn tabs into main top navigation (Menu.js and Dashboard.js)
    └── [x] 15/15 backend automated tests passing and zero-warning production builds
+
+[Phase 14: Live Dashboard Step-by-Step Learning Deck, Real-Time MTM Ticking & Position Square-Off] - COMPLETED ✅
+   ├── [x] Integrated interactive Step-by-Step Learning Missions Roadmap directly on the Live Dashboard (Summary.js) with 5 actionable missions (₹10L Capital, Screener, 5x Leverage Buy, Live Chart, MTM Management), progress bar, and trader tiers (Novice to Master Paper Trader)
+   ├── [x] Built backend Position Square-Off endpoints: POST /positions/exit (single position) and POST /positions/exit-all (all open positions) calculating realized P&L, refunding margin + profit/loss to virtual funds, and logging SELL orders
+   ├── [x] Built backend Trade Analytics endpoint: GET /trade-analytics calculating win rate %, total/closed trades, gross profit/loss, profit factor, net realized P&L, and capital growth %
+   ├── [x] Overhauled Positions.js with real-time MTM micro-ticking (every 3.8s), green/red price flash animations, live Total MTM header badge, 1-click 'Exit (Square Off)' button in each row, 'Square Off All' button, and Live Candlestick Chart launch
+   ├── [x] Overhauled Holdings.js with real-time micro-ticking (every 4s), green/red price flash animations, dynamic portfolio P&L recalculation, and 1-click Buy/Sell/Chart action buttons
+   ├── [x] Added live ticking Indian Standard Time (IST) clock (1-second update) and 'Paper Trading ₹10L' simulator badge in TopBar.js
+   ├── [x] Synchronized frontend/signup/Login.js with Navbar.js to eliminate auth state discrepancy when user is already logged in
+   ├── [x] Added unit tests for position square-off, margin refund, and trade analytics in backend/test/paper_trading.test.js
+   └── [x] 16/16 backend tests passing (100%), 0 ESLint warnings on dashboard build, and clean production frontend build
 ```
