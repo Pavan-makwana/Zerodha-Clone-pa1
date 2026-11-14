@@ -302,4 +302,14 @@ While the visual layout and UI styling of the landing pages and trading dashboar
    ├── [x] Synchronized frontend/signup/Login.js with Navbar.js to eliminate auth state discrepancy when user is already logged in
    ├── [x] Added unit tests for position square-off, margin refund, and trade analytics in backend/test/paper_trading.test.js
    └── [x] 16/16 backend tests passing (100%), 0 ESLint warnings on dashboard build, and clean production frontend build
+
+[Phase 15: Indian Stock Market (NSE/BSE) Hours Engine & Real Closing Price Freezing] - COMPLETED ✅
+   ├── [x] Built accurate Indian Stock Market trading hours engine (backend/utils/marketHours.js & dashboard/src/utils/marketHours.js): regular session Monday-Friday 09:15 AM - 03:30 PM IST, pre-market 09:00 - 09:15 AM IST, closed evenings and weekends (Saturday/Sunday)
+   ├── [x] Added GET /api/market/status backend endpoint returning real-time session status, next open time ("Opens Monday at 09:15 AM IST"), and trading day details
+   ├── [x] Updated LiveChartModal.js: replaced hardcoded "LIVE STREAM • IST" with dynamic badge "MARKET CLOSED • CLOSING PRICE" (when closed) and stopped artificial candle micro-ticking during closed market hours
+   ├── [x] Updated TopBar.js: replaced "NSE LIVE" with "NSE CLOSED" badge showing next open time ("Opens Monday at 09:15 AM IST") and paused index micro-ticking
+   ├── [x] Updated Summary.js: replaced hardcoded "Market Open (IST)" with dynamic market status badge and next session countdown
+   ├── [x] Updated Holdings.js, Positions.js, and WatchList.js: paused synthetic price micro-ticks when exchange is closed and display official Friday closing prices
+   ├── [x] Updated BuyActionWindow.js: added After-Market Order (AMO) banner informing learners that orders placed outside 09:15-15:30 IST are executed as AMOs at official closing price
+   └── [x] 18/18 backend automated tests passing (100%) and 0-warning production dashboard build
 ```
