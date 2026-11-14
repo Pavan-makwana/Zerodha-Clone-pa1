@@ -86,3 +86,34 @@ test('Search Indian Stocks returns matched equities with live prices', async () 
     assert.strictEqual(stock.exchange, 'NSE');
   });
 });
+
+test('Indian Stock Market Trading Hours Utility: Accurate Open/Close validation', () => {
+  const { getIndianMarketStatus } = require('../utils/marketHours');
+
+  // Case 1: Friday 6:16 PM IST (2026-11-13T12:46:00Z -> 18:16 IST)
+  const fridayEveningUtc = new Date('2026-11-13T12:46:00Z');
+  const friStatus = getIndianMarketStatus(fridayEveningUtc);
+  assert.strictEqual(friStatus.isOpen, false, 'Market must be closed on Friday evening');
+  assert.strictEqual(friStatus.session, 'CLOSED');
+  assert.strictEqual(friStatus.badgeText, 'NSE CLOSED');
+  assert.strictEqual(friStatus.nextOpenMessage, 'Opens Monday at 09:15 AM IST');
+
+  // Case 2: Saturday afternoon (2026-11-14T08:45:00Z -> 14:15 IST)
+  const satUtc = new Date('2026-11-14T08:45:00Z');
+  const satStatus = getIndianMarketStatus(satUtc);
+  assert.strictEqual(satStatus.isOpen, false, 'Market must be closed on Saturday');
+  assert.strictEqual(satStatus.nextOpenMessage, 'Opens Monday at 09:15 AM IST');
+
+  // Case 3: Tuesday regular trading hours (2026-11-17T05:00:00Z -> 10:30 AM IST)
+  const tuesdayTradingUtc = new Date('2026-11-17T05:00:00Z');
+  const tuesStatus = getIndianMarketStatus(tuesdayTradingUtc);
+  assert.strictEqual(tuesStatus.isOpen, true, 'Market must be open on Tuesday at 10:30 AM IST');
+  assert.strictEqual(tuesStatus.session, 'REGULAR');
+  assert.strictEqual(tuesStatus.badgeText, 'NSE LIVE');
+
+  // Case 4: Wednesday pre-market (2026-11-18T03:35:00Z -> 09:05 AM IST)
+  const wedPreMarketUtc = new Date('2026-11-18T03:35:00Z');
+  const wedStatus = getIndianMarketStatus(wedPreMarketUtc);
+  assert.strictEqual(wedStatus.isOpen, false);
+  assert.strictEqual(wedStatus.session, 'PRE_MARKET');
+});

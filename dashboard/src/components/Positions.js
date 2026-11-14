@@ -9,6 +9,7 @@ import {
   TrendingUpOutlined,
   InfoOutlined,
 } from "@mui/icons-material";
+import { getIndianMarketStatus } from "../utils/marketHours";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -46,9 +47,9 @@ const Positions = () => {
     return () => window.removeEventListener("kite:order-placed", handleOrderPlaced);
   }, []);
 
-  // Real-time market tick polling & simulated exchange micro-ticks every 3.8s
+  // Real-time market tick polling & simulated exchange micro-ticks (ONLY during live market hours)
   useEffect(() => {
-    if (allPositions.length === 0) return;
+    if (allPositions.length === 0 || !getIndianMarketStatus().isOpen) return;
 
     const tickInterval = setInterval(() => {
       setAllPositions((prevPositions) => {
@@ -192,6 +193,21 @@ const Positions = () => {
         </div>
 
         <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          {!getIndianMarketStatus().isOpen && (
+            <span
+              style={{
+                background: "#f1f5f9",
+                color: "#64748b",
+                border: "1px solid #cbd5e1",
+                padding: "4px 10px",
+                borderRadius: "14px",
+                fontSize: "0.72rem",
+                fontWeight: 600,
+              }}
+            >
+              Market Closed (Friday Close)
+            </span>
+          )}
           {allPositions.length > 0 && (
             <div
               style={{

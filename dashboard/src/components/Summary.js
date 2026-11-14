@@ -4,6 +4,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import GeneralContext from "./GeneralContext";
+import { getIndianMarketStatus } from "../utils/marketHours";
 import {
   CandlestickChartOutlined,
   SchoolOutlined,
@@ -356,9 +357,36 @@ const Summary = () => {
             <CandlestickChartOutlined style={{ fontSize: "16px" }} />
             Live Market Chart
           </button>
-          <span style={{ background: "#e6f7ed", color: "#00a25b", padding: "4px 10px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: 700 }}>
-            Market Open (IST)
-          </span>
+          {(() => {
+            const marketStatus = getIndianMarketStatus();
+            return (
+              <span
+                title={`Trading Hours: Mon-Fri 09:15 AM - 03:30 PM IST (${marketStatus.nextOpenMessage})`}
+                style={{
+                  background: marketStatus.isOpen ? "#e6f7ed" : "#f1f5f9",
+                  color: marketStatus.isOpen ? "#00a25b" : "#475569",
+                  border: marketStatus.isOpen ? "none" : "1px solid #cbd5e1",
+                  padding: "4px 12px",
+                  borderRadius: "12px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <span
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "50%",
+                    background: marketStatus.isOpen ? "#00a25b" : "#94a3b8",
+                  }}
+                ></span>
+                {marketStatus.statusText} {!marketStatus.isOpen ? `(${marketStatus.nextOpenMessage})` : ""}
+              </span>
+            );
+          })()}
         </div>
       </div>
 

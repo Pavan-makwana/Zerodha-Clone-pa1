@@ -14,6 +14,7 @@ import {
 
 import { watchlist as defaultLocalWatchlist } from "../data/data";
 import { INDIAN_STOCKS_DIRECTORY } from "../data/indianStocks";
+import { getIndianMarketStatus } from "../utils/marketHours";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -89,8 +90,12 @@ const WatchList = () => {
     return () => clearInterval(pollInterval);
   }, [watchlistItems]);
 
-  // Subtle live micro-ticks for realistic trading terminal dynamics
+  // Subtle live micro-ticks for realistic trading terminal dynamics (ONLY during live market hours)
   useEffect(() => {
+    if (!getIndianMarketStatus().isOpen) {
+      return; // Freeze prices at Friday's official close when market is closed
+    }
+
     const tickInterval = setInterval(() => {
       setWatchlistItems((prevItems) => {
         return prevItems.map((stock) => {

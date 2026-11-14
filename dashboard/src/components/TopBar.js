@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Menu from "./Menu";
+import { getIndianMarketStatus } from "../utils/marketHours";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "https://zerodha-clone-pa1.onrender.com";
 
@@ -58,8 +59,12 @@ const TopBar = () => {
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Subtle real-time micro-ticks for realistic trading terminal feel
+  // Subtle real-time micro-ticks ONLY during official exchange hours (09:15 - 15:30 IST)
   useEffect(() => {
+    if (!getIndianMarketStatus().isOpen) {
+      return; // Do NOT simulate ticks when market is closed; show Friday closing levels!
+    }
+
     const tickInterval = setInterval(() => {
       setIndices((prev) => {
         const niftyDelta = (Math.random() * 3.5 - 1.6);
@@ -115,27 +120,52 @@ const TopBar = () => {
           </p>
         </div>
 
-        {indices.isLive && (
-          <span
-            title="Streaming Live Market Rates (NSE/BSE)"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "5px",
-              marginLeft: "14px",
-              padding: "2px 8px",
-              background: "#e6f7ed",
-              color: "#00a25b",
-              borderRadius: "10px",
-              fontSize: "0.68rem",
-              fontWeight: 700,
-              letterSpacing: "0.5px",
-            }}
-          >
-            <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#00a25b" }}></span>
-            NSE LIVE
-          </span>
-        )}
+        {(() => {
+          const marketStatus = getIndianMarketStatus();
+          return (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+              <span
+                title={`Market Hours: Mon-Fri 09:15 AM - 03:30 PM IST (${marketStatus.nextOpenMessage})`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  marginLeft: "14px",
+                  padding: "2px 8px",
+                  background: marketStatus.isOpen ? "#e6f7ed" : "#f1f5f9",
+                  color: marketStatus.isOpen ? "#00a25b" : "#475569",
+                  border: marketStatus.isOpen ? "none" : "1px solid #cbd5e1",
+                  borderRadius: "10px",
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.5px",
+                }}
+              >
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "50%",
+                    background: marketStatus.isOpen ? "#00a25b" : "#94a3b8",
+                  }}
+                ></span>
+                {marketStatus.badgeText}
+              </span>
+              {!marketStatus.isOpen && (
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    color: "#64748b",
+                    display: "none",
+                  }}
+                  className="d-none d-md-inline"
+                >
+                  ({marketStatus.nextOpenMessage})
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         <div
           style={{

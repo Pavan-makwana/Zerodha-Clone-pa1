@@ -8,6 +8,7 @@
  */
 
 const { INDIAN_STOCKS_DIRECTORY } = require('../data/indianStocks');
+const { getIndianMarketStatus } = require('../utils/marketHours');
 
 const CACHE_TTL_MS = 15 * 1000; // 15 seconds cache
 const quoteCache = new Map();
@@ -264,18 +265,20 @@ async function getQuote(rawSymbol) {
   // 1. Primary: Google Finance
   try {
     const gfQuote = await fetchGoogleFinanceQuote(displaySym);
-    quoteCache.set(yahooSymbol, { timestamp: now, data: gfQuote });
-    return gfQuote;
+    const enriched = { ...gfQuote, isMarketOpen: getIndianMarketStatus().isOpen };
+    quoteCache.set(yahooSymbol, { timestamp: now, data: enriched });
+    return enriched;
   } catch (gfErr) {
     // 2. Secondary: Yahoo Finance
     try {
       const yQuote = await fetchYahooQuote(yahooSymbol);
-      quoteCache.set(yahooSymbol, { timestamp: now, data: yQuote });
-      return yQuote;
+      const enriched = { ...yQuote, isMarketOpen: getIndianMarketStatus().isOpen };
+      quoteCache.set(yahooSymbol, { timestamp: now, data: enriched });
+      return enriched;
     } catch (yErr) {
       // 3. Return cached data if available
       if (quoteCache.has(yahooSymbol)) {
-        return { ...quoteCache.get(yahooSymbol).data, isLive: false };
+        return { ...quoteCache.get(yahooSymbol).data, isLive: false, isMarketOpen: getIndianMarketStatus().isOpen };
       }
 
       // 4. Tertiary: High-fidelity 2026 baseline
@@ -306,6 +309,7 @@ async function getQuote(rawSymbol) {
         currency: "INR",
         updatedAt: new Date().toISOString(),
         isLive: false,
+        isMarketOpen: getIndianMarketStatus().isOpen,
         fallbackReason: gfErr.message,
       };
 
@@ -330,6 +334,7 @@ async function getMultipleQuotes(symbolsArray) {
  * Gets the live market indices: NIFTY 50 and SENSEX
  */
 async function getIndices() {
+  const marketStatus = getIndianMarketStatus();
   const [niftyQuote, sensexQuote] = await Promise.all([
     getQuote("^NSEI"),
     getQuote("^BSESN"),
@@ -356,6 +361,8 @@ async function getIndices() {
       updatedAt: sensexQuote.updatedAt,
       isLive: sensexQuote.isLive,
     },
+    marketStatus,
+    isMarketOpen: marketStatus.isOpen,
     timestamp: new Date().toISOString(),
   };
 }
@@ -569,12 +576,15 @@ async function getHistory(rawSymbol, timeframe = '1D') {
       throw new Error("No valid candle points in Yahoo response");
     }
 
+    const marketStatus = getIndianMarketStatus();
     const payload = {
       symbol: getDisplaySymbol(yahooSymbol),
       yahooSymbol,
       timeframe: cleanTf,
       candles,
-      isLive: true,
+      marketStatus,
+      isMarketOpen: marketStatus.isOpen,
+      isLive: marketStatus.isOpen,
       lastUpdated: new Date().toISOString(),
     };
 
@@ -586,6 +596,7 @@ async function getHistory(rawSymbol, timeframe = '1D') {
       return historyCache.get(cacheKey).data;
     }
 
+    const marketStatus = getIndianMarketStatus();
     const quote = await getQuote(rawSymbol);
     const basePrice = quote?.price || 1000;
     const candles = generateSyntheticCandles(basePrice, cleanTf);
@@ -595,6 +606,8 @@ async function getHistory(rawSymbol, timeframe = '1D') {
       yahooSymbol,
       timeframe: cleanTf,
       candles,
+      marketStatus,
+      isMarketOpen: marketStatus.isOpen,
       isLive: false,
       fallbackReason: err.message,
       lastUpdated: new Date().toISOString(),

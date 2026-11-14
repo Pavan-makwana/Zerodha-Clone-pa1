@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import GeneralContext from "./GeneralContext";
+import { getIndianMarketStatus } from "../utils/marketHours";
 import LiveCandlestickChart from "./LiveCandlestickChart";
 import {
   CloseOutlined,
@@ -77,8 +78,12 @@ const LiveChartModal = ({ symbol, onClose }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stockSymbol, timeframe]);
 
-  // Live micro-ticking: updates the latest candle in real-time
+  // Live micro-ticking: updates the latest candle in real-time ONLY during market open hours (09:15 - 15:30 IST)
   useEffect(() => {
+    if (!getIndianMarketStatus().isOpen) {
+      return; // Do NOT simulate live ticks when market is closed; preserve official closing price!
+    }
+
     const tickInterval = setInterval(() => {
       setCandles((prevCandles) => {
         if (!prevCandles || prevCandles.length === 0) return prevCandles;
@@ -206,23 +211,50 @@ const LiveChartModal = ({ symbol, onClose }) => {
               </span>
             </div>
 
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "4px",
-                fontSize: "0.68rem",
-                fontWeight: 700,
-                color: "#00a25b",
-                background: "#e6f7ed",
-                padding: "2px 8px",
-                borderRadius: "10px",
-                marginLeft: "6px",
-              }}
-            >
-              <FiberManualRecord style={{ fontSize: "8px", color: "#00a25b" }} />
-              LIVE STREAM • IST
-            </span>
+            {(() => {
+              const marketStatus = getIndianMarketStatus();
+              return (
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      fontSize: "0.68rem",
+                      fontWeight: 700,
+                      color: marketStatus.isOpen ? "#00a25b" : "#475569",
+                      background: marketStatus.isOpen ? "#e6f7ed" : "#f1f5f9",
+                      border: marketStatus.isOpen ? "none" : "1px solid #cbd5e1",
+                      padding: "2px 8px",
+                      borderRadius: "10px",
+                      marginLeft: "6px",
+                    }}
+                  >
+                    <FiberManualRecord
+                      style={{
+                        fontSize: "8px",
+                        color: marketStatus.isOpen ? "#00a25b" : "#94a3b8",
+                      }}
+                    />
+                    {marketStatus.chartBadge}
+                  </span>
+                  {!marketStatus.isOpen && (
+                    <span
+                      style={{
+                        fontSize: "0.72rem",
+                        color: "#64748b",
+                        background: "#fffbeb",
+                        padding: "2px 8px",
+                        borderRadius: "8px",
+                        border: "1px solid #fef3c7",
+                      }}
+                    >
+                      {marketStatus.nextOpenMessage}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Timeframe & Chart Type Controls */}

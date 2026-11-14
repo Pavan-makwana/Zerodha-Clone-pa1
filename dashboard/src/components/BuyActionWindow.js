@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import GeneralContext from "./GeneralContext";
+import { getIndianMarketStatus } from "../utils/marketHours";
 
 import "./BuyActionWindow.css";
 
@@ -239,6 +240,22 @@ const BuyActionWindow = ({ uid, initialMode = "BUY" }) => {
 
         {/* Form Body */}
         <form onSubmit={handleOrderSubmit} className="order-form-body">
+          {!getIndianMarketStatus().isOpen && (
+            <div
+              style={{
+                background: "#fef3c7",
+                border: "1px solid #fde68a",
+                borderRadius: "6px",
+                padding: "8px 12px",
+                marginBottom: "12px",
+                fontSize: "0.75rem",
+                color: "#92400e",
+                lineHeight: "1.4",
+              }}
+            >
+              <strong>After-Market Order (AMO):</strong> NSE is currently closed (Mon-Fri 09:15 AM - 03:30 PM IST). Placing simulated order at Friday's official closing price.
+            </div>
+          )}
           <div className="inputs-row">
             <div className="field-block">
               <label htmlFor="order-qty">Qty</label>

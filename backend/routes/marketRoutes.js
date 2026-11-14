@@ -4,11 +4,21 @@ const express = require('express');
 const router = express.Router();
 const { getIndices, getQuote, getMultipleQuotes, getHistory, searchStocks } = require('../services/marketService');
 const { getScreenerStocks } = require('../services/screenerService');
+const { getIndianMarketStatus } = require('../utils/marketHours');
 
 // Default watchlist tickers if none requested
 const DEFAULT_SYMBOLS = [
   "INFY", "ONGC", "TCS", "KPITTECH", "QUICKHEAL", "WIPRO", "M&M", "RELIANCE", "HUL"
 ];
+
+/**
+ * GET /api/market/status
+ * Returns current Indian Stock Market (NSE/BSE) trading session status
+ */
+router.get('/status', (req, res) => {
+  const status = getIndianMarketStatus();
+  res.status(200).json(status);
+});
 
 /**
  * GET /api/market/indices
